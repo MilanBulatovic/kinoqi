@@ -1,0 +1,72 @@
+---
+interface Props {
+  src: string;
+  loop?: boolean;
+  autoplay?: boolean;
+  speed?: number;
+  width?: string;
+  height?: string;
+  class?: string;
+  id?: string;
+}
+
+const {
+  src,
+  loop = true,
+  autoplay = true,
+  speed = 1,
+  width = "100%",
+  height = "100%",
+  class: className = "",
+  id,
+} = Astro.props;
+
+const uid = id ?? `lottie-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<div
+  id={uid}
+  class:list={["lottie-player", className]}
+  style={`width:${width}; height:${height};`}
+  data-src={src}
+  data-loop={String(loop)}
+  data-autoplay={String(autoplay)}
+  data-speed={String(speed)}
+  aria-hidden="true"
+></div>
+
+<script>
+  import { DotLottie } from "@lottiefiles/dotlottie-web";
+
+  document.querySelectorAll<HTMLElement>(".lottie-player").forEach((el) => {
+    if (el.dataset.initialized) return;
+    el.dataset.initialized = "true";
+
+    new DotLottie({
+      canvas: (() => {
+        const canvas = document.createElement("canvas");
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        el.appendChild(canvas);
+        return canvas;
+      })(),
+      src: el.dataset.src!,
+      loop: el.dataset.loop === "true",
+      autoplay: el.dataset.autoplay === "true",
+      speed: parseFloat(el.dataset.speed ?? "1"),
+    });
+  });
+</script>
+
+<style>
+  .lottie-player {
+    display: block;
+    overflow: hidden;
+  }
+
+  .lottie-player canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+</style>

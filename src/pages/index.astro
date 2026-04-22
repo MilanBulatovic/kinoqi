@@ -1,112 +1,372 @@
 ---
-import { sanityClient } from "@/sanity/client";
-import PostCard from "@/components/PostCard.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import LottiePlayer from "@/components/LottiePlayer.astro";
 
-const posts = await sanityClient.fetch<
-  Array<{
-    _id: string;
-    title: string;
-    slug: { current: string };
-    excerpt?: string;
-    publishedAt?: string;
-    mainImage?: { asset: { _ref: string }; alt?: string };
-  }>
->(
-  `*[_type == "post"] | order(publishedAt desc) {
-    _id,
-    title,
-    slug,
-    excerpt,
-    publishedAt,
-    mainImage
-  }`
-);
+const letters = "kinoqi".split("");
 ---
 
-<BaseLayout title="Kinoqi" description="Blog pokretan Astro-om i Sanity CMS-om" currentPath="/">
-  <main class="container">
-    <section class="hero">
-      <h1>Dobrodošli na Kinoqi</h1>
-      <p>Blog pokretan Astro-om i Sanity CMS-om</p>
+<!-- ── Intro overlay ──────────────────────────────────────── -->
+<div id="intro" aria-modal="true" role="dialog" aria-label="Intro">
+  <div class="intro__video-wrap">
+    <video
+      class="intro__video"
+      src="/mars.mp4"
+      autoplay
+      muted
+      loop
+      playsinline
+      poster="/logo3.png"
+    ></video>
+    <div class="intro__video-overlay"></div>
+  </div>
+  <div class="intro__noise"></div>
+
+  <div class="intro__bottom">
+    <button id="intro-enter" class="intro__enter" aria-label="Uđi na stranicu">
+      <span class="intro__enter-text">enter</span>
+    </button>
+    <div class="intro__lottie">
+      <LottiePlayer src="/Rocket Lunch.lottie" width="200px" height="200px" />
+    </div>
+  </div>
+</div>
+
+<!-- ── Actual page (hidden until intro exits) ────────────── -->
+<div id="page-wrap" style="opacity:0; visibility:hidden;">
+  <BaseLayout title="Kinoqi" description="Blog pokretan Astro-om i Sanity CMS-om" currentPath="/">
+    <section class="banner" aria-label="Kinoqi banner">
+      <div class="banner__overlay"></div>
+      <h1 class="banner__title" aria-label="kinoqi">
+        {letters.map((letter, i) => (
+          <span class="banner__letter" data-index={i}>{letter}</span>
+        ))}
+      </h1>
+      <div class="banner__scroll-hint">
+        <span class="banner__scroll-line"></span>
+      </div>
     </section>
+  </BaseLayout>
+</div>
 
-    {
-      posts.length > 0 ? (
-        <section class="posts-grid">
-          {posts.map((post) => (
-            <PostCard
-              title={post.title}
-              slug={post.slug.current}
-              excerpt={post.excerpt}
-              publishedAt={post.publishedAt}
-              mainImage={post.mainImage}
-            />
-          ))}
-        </section>
-      ) : (
-        <section class="empty-state">
-          <p>Još uvek nema objava.</p>
-          <a href="http://localhost:3333" class="btn">Dodaj prvu objavu u Sanity Studio →</a>
-        </section>
-      )
+<style is:global>
+  /* ── Reset body overflow while intro is active ──────────── */
+  body.intro-active {
+    overflow: hidden;
+  }
+
+  /* ── Intro overlay ──────────────────────────────────────── */
+  #intro {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3.5rem;
+    overflow: hidden;
+  }
+
+  .intro__video-wrap {
+    position: absolute;
+    inset: 0;
+    will-change: transform;
+    overflow: hidden;
+  }
+
+  .intro__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .intro__video-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.72) 0%,
+      rgba(10, 6, 30, 0.55) 50%,
+      rgba(0, 0, 0, 0.72) 100%
+    );
+  }
+
+  /* film-grain texture via SVG noise */
+  .intro__noise {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px;
+    animation: grainShift 0.4s steps(1) infinite;
+  }
+
+  @keyframes grainShift {
+    0%   { background-position: 0 0; }
+    25%  { background-position: -30px 20px; }
+    50%  { background-position: 15px -10px; }
+    75%  { background-position: -20px -25px; }
+    100% { background-position: 10px 30px; }
+  }
+
+  /* ── Bottom group (button + lottie) ────────────────────── */
+  .intro__bottom {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    opacity: 0;
+    animation: lottieFadeIn 0.8s ease-out 0.8s forwards;
+  }
+
+  @keyframes lottieFadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* ── Enter button ───────────────────────────────────────── */
+  .intro__enter {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    opacity: 1;
+    outline: none;
+  }
+
+  .intro__enter-text {
+    display: block;
+    font-size: 70px;
+    font-weight: 200;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, #a78bfa, #60a5fa, #f0abfc, #a78bfa);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: background-position 0.4s ease;
+    animation: gradientShift 4s linear infinite;
+  }
+
+  @keyframes gradientShift {
+    to { background-position: 200% center; }
+  }
+
+  @media (max-width: 640px) {
+    .intro__enter-text {
+      font-size: 38px;
+      letter-spacing: 0.25em;
     }
-  </main>
-</BaseLayout>
 
-<style>
-  .container {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 1.5rem;
+    .intro__bottom {
+      bottom: 1rem;
+    }
   }
 
-  .hero {
-    padding: 4rem 0 2rem;
-    text-align: center;
+  /* ── Intro lottie ───────────────────────────────────────── */
+  .intro__lottie {
+    line-height: 0;
   }
 
-  .hero h1 {
-    font-size: clamp(2rem, 5vw, 3rem);
-    font-weight: 800;
-    margin-bottom: 0.75rem;
+  @media (max-width: 640px) {
+    .intro__lottie :global(.lottie-player) {
+      width: 140px !important;
+      height: 140px !important;
+    }
   }
 
-  .hero p {
-    color: var(--color-muted);
-    font-size: 1.125rem;
+  /* ── Page wrapper ───────────────────────────────────────── */
+  #page-wrap {
+    will-change: opacity;
   }
 
-  .posts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    padding: 2rem 0 4rem;
+  /* ── Banner (same as before) ────────────────────────────── */
+  .banner {
+    position: relative;
+    width: 100%;
+    height: 100svh;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-image: url("/logo3.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
-  .empty-state {
-    text-align: center;
-    padding: 4rem 0;
-    color: var(--color-muted);
+  .banner__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.72) 0%,
+      rgba(10, 6, 30, 0.55) 50%,
+      rgba(0, 0, 0, 0.72) 100%
+    );
   }
 
-  .empty-state p {
-    margin-bottom: 1.5rem;
-    font-size: 1.125rem;
-  }
-
-  .btn {
-    display: inline-block;
-    background: var(--color-primary);
+  .banner__title {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 0.04em;
+    font-size: clamp(5rem, 18vw, 16rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    text-transform: lowercase;
     color: #fff;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    text-decoration: none;
-    font-weight: 600;
-    transition: background 0.2s;
+    user-select: none;
   }
 
-  .btn:hover {
-    background: #4338ca;
+  .banner__letter {
+    display: inline-block;
+    will-change: transform, opacity, filter;
+    opacity: 0;
+    transform: translateY(60px) skewY(6deg);
+    filter: blur(16px);
+    text-shadow:
+      0 0 40px rgba(139, 92, 246, 0.9),
+      0 0 80px rgba(139, 92, 246, 0.5),
+      0 2px 4px rgba(0, 0, 0, 0.6);
+  }
+
+  .banner__scroll-hint {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0;
+  }
+
+  .banner__scroll-line {
+    display: block;
+    width: 1px;
+    height: 64px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.8), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(1); }
+    50%       { opacity: 1;   transform: scaleY(1.15); }
   }
 </style>
+
+<script>
+  import gsap from "gsap";
+
+  /* ── prevent scroll while intro is up ─────────────────── */
+  document.body.classList.add("intro-active");
+
+  const introEl        = document.getElementById("intro")!;
+  const enterBtn       = document.getElementById("intro-enter") as HTMLButtonElement;
+  const pageWrap       = document.getElementById("page-wrap")!;
+  const bannerLetters  = pageWrap.querySelectorAll<HTMLElement>(".banner__letter");
+  const scrollHint     = pageWrap.querySelector<HTMLElement>(".banner__scroll-hint");
+  const introVideoWrap = introEl.querySelector<HTMLElement>(".intro__video-wrap")!;
+
+  /* ── INTRO IN ───────────────────────────────────────────── */
+  // parallax zoom on video
+  gsap.fromTo(introVideoWrap, { scale: 1.08 }, { scale: 1, duration: 2.4, ease: "power2.out" });
+
+  /* ── INTRO OUT (on Enter click) ─────────────────────────── */
+  const introBottom = introEl.querySelector<HTMLElement>(".intro__bottom")!;
+
+  enterBtn.addEventListener("click", () => {
+    enterBtn.disabled = true;
+
+    const exitTl = gsap.timeline();
+
+    // 1. Bottom group fades + slides down
+    exitTl.to(introBottom, { opacity: 0, y: 20, duration: 0.35, ease: "power2.in" });
+
+    // 2. Video wrap scales up and iris-wipes out via clip-path
+    exitTl.to(
+      introVideoWrap,
+      { scale: 1.15, duration: 0.6, ease: "power2.in" },
+      "<"
+    );
+
+    exitTl.to(
+      introEl,
+      {
+        clipPath: "circle(0% at 50% 50%)",
+        duration: 0.7,
+        ease: "power4.inOut",
+      },
+      "-=0.15"
+    );
+
+    // 4. Show page
+    exitTl.set(pageWrap, { visibility: "visible" });
+    exitTl.to(pageWrap, { opacity: 1, duration: 0.5, ease: "power2.out" });
+
+    // 5. Remove intro from DOM after it's gone
+    exitTl.call(() => {
+      introEl.remove();
+      document.body.classList.remove("intro-active");
+    });
+
+    // 6. Animate banner letters in (reuse existing logic)
+    exitTl.to(
+      bannerLetters,
+      {
+        opacity: 1,
+        y: 0,
+        skewY: 0,
+        filter: "blur(0px)",
+        duration: 1.1,
+        stagger: { each: 0.09, ease: "power2.inOut" },
+        ease: "expo.out",
+      },
+      "-=0.3"
+    );
+
+    exitTl.to(
+      bannerLetters,
+      {
+        x: () => gsap.utils.random(-6, 6),
+        color: () => gsap.utils.random(["#a78bfa", "#f0abfc", "#ffffff", "#c4b5fd"]),
+        duration: 0.06,
+        stagger: { each: 0.04, from: "random" },
+        yoyo: true,
+        repeat: 3,
+        ease: "expo.out",
+      },
+      "+=0.05"
+    );
+
+    exitTl.to(bannerLetters, { x: 0, color: "#ffffff", duration: 0.3, stagger: 0.03, ease: "expo.out" });
+
+    bannerLetters.forEach((el, i) => {
+      gsap.to(el, {
+        y: gsap.utils.random(-8, 8),
+        duration: gsap.utils.random(2.5, 4),
+        ease: "sine.inOut",
+        yoyo: true,
+        repeat: -1,
+        delay: exitTl.duration() + i * 0.12,
+      });
+    });
+
+    exitTl.to(scrollHint, { opacity: 1, duration: 0.8 }, "-=0.4");
+  });
+</script>

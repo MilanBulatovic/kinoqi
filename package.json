@@ -14,6 +14,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-web": "^0.71.0",
     "@sanity/client": "^6.28.3",
     "@sanity/image-url": "^1.1.0",
     "@sanity/vision": "^3.83.0",
