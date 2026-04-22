@@ -1,8 +1,10 @@
 ---
+import { galleryImageSrc } from "@/lib/galleryImageUrl";
 import VideoSection from "./VideoSection.astro";
 import GallerySection from "./GallerySection.astro";
 import AnimationTextSection from "./AnimationTextSection.astro";
 import FullWidthBanner from "./FullWidthBanner.astro";
+import FormSection from "./FormSection.astro";
 
 type VideoSectionType = {
   _key: string;
@@ -16,7 +18,8 @@ type GallerySectionType = {
   _type: "gallerySection";
   images?: Array<{
     _key: string;
-    asset: { url: string };
+    src?: string | null;
+    asset?: { url?: string } | null;
     alt?: string;
     caption?: string;
   }>;
@@ -40,8 +43,25 @@ type FullWidthTextSectionType = {
   text?: string;
 };
 
+type FormSectionType = {
+  _key: string;
+  _type: "formSection";
+  heading?: string;
+  nameLabel?: string;
+  emailLabel?: string;
+  messageLabel?: string;
+  submitLabel?: string;
+  actionUrl?: string;
+};
+
 interface Props {
-  sections?: Array<VideoSectionType | GallerySectionType | AnimationTextSectionType | FullWidthTextSectionType>;
+  sections?: Array<
+    | VideoSectionType
+    | GallerySectionType
+    | AnimationTextSectionType
+    | FullWidthTextSectionType
+    | FormSectionType
+  >;
 }
 
 const { sections } = Astro.props;
@@ -54,8 +74,11 @@ const { sections } = Astro.props;
         return <VideoSection url={section.url} caption={section.caption} />;
       }
 
-      if (section._type === "gallerySection" && section.images && section.images.length > 0) {
-        return <GallerySection images={section.images} />;
+      if (section._type === "gallerySection" && section.images?.length) {
+        const galleryImages = section.images.filter((img) => galleryImageSrc(img));
+        if (galleryImages.length > 0) {
+          return <GallerySection images={galleryImages} instanceId={section._key} />;
+        }
       }
 
       if (section._type === "animationTextSection" && section.content && section.content.length > 0) {
@@ -64,6 +87,20 @@ const { sections } = Astro.props;
 
       if (section._type === "fullWidthTextSection" && section.backgroundImage?.asset) {
         return <FullWidthBanner backgroundImage={section.backgroundImage} text={section.text} />;
+      }
+
+      if (section._type === "formSection") {
+        return (
+          <FormSection
+            instanceId={section._key}
+            heading={section.heading}
+            nameLabel={section.nameLabel}
+            emailLabel={section.emailLabel}
+            messageLabel={section.messageLabel}
+            submitLabel={section.submitLabel}
+            actionUrl={section.actionUrl}
+          />
+        );
       }
 
       return null;

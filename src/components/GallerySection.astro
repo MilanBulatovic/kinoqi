@@ -1,32 +1,48 @@
 ---
+import { galleryImageSrc } from "@/lib/galleryImageUrl";
+
 interface Props {
   images: Array<{
     _key: string;
-    asset: { url: string };
+    src?: string | null;
+    asset?: { url?: string } | null;
     alt?: string;
     caption?: string;
   }>;
+  /** Jedinstven u okviru stranice — za GSAP samo unutar ove galerije */
+  instanceId: string;
 }
 
-const { images } = Astro.props;
+const { images: rawImages, instanceId } = Astro.props;
 
+const images = rawImages.filter((img) => galleryImageSrc(img));
 const count = images.length;
 const gridClass =
   count === 1 ? "gallery-grid--one"
   : count === 2 ? "gallery-grid--two"
   : "gallery-grid--many";
+
+const rootId = `gallery-${instanceId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 ---
 
-<div class="section gallery-section">
-  <div class:list={["gallery-grid", gridClass]}>
-    {images.map((image) => (
-      <figure class="gallery-item">
-        <img src={image.asset.url} alt={image.alt ?? ""} loading="lazy" />
-        {image.caption && <figcaption>{image.caption}</figcaption>}
-      </figure>
-    ))}
-  </div>
-</div>
+{
+  count > 0 && (
+    <div id={rootId} class="section gallery-section">
+      <div class:list={["gallery-grid", gridClass]}>
+        {images.map((image) => {
+          const src = galleryImageSrc(image);
+          if (!src) return null;
+          return (
+            <figure class="gallery-item">
+              <img src={src} alt={image.alt ?? ""} loading="lazy" />
+              {image.caption && <figcaption>{image.caption}</figcaption>}
+            </figure>
+          );
+        })}
+      </div>
+    </div>
+  )
+}
 
 <style>
   .section { margin: 0; }
@@ -80,31 +96,44 @@ const gridClass =
   }
 </style>
 
-<script>
+<script lang="ts" define:vars={{ galleryRootId: rootId }}>
   import { gsap } from "gsap";
   import { ScrollTrigger } from "gsap/ScrollTrigger";
 
   gsap.registerPlugin(ScrollTrigger);
 
-  document.querySelectorAll<HTMLElement>(".gallery-item").forEach((item, i) => {
-    gsap.set(item, { opacity: 0, y: 40, scale: 0.97 });
+  function initGalleryScroll(rootId) {
+    const root = document.getElementById(rootId);
+    if (!root) return;
 
-    const delay = (i % 3) * 0.15 + Math.random() * 0.2;
+    const items = root.querySelectorAll(".gallery-item");
+    items.forEach((item, i) => {
+      const delay = (i % 3) * 0.12;
 
-    ScrollTrigger.create({
-      trigger: item,
-      start: "top 90%",
-      once: true,
-      onEnter: () => {
-        gsap.to(item, {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.9,
-          ease: "power3.out",
-          delay,
-        });
-      },
+      ScrollTrigger.create({
+        trigger: item,
+        start: "top 92%",
+        once: true,
+        onEnter: () => {
+          gsap.from(item, {
+            opacity: 0,
+            y: 32,
+            scale: 0.98,
+            duration: 0.75,
+            ease: "power2.out",
+            delay,
+          });
+        },
+      });
     });
-  });
+
+    root.querySelectorAll("img").forEach((img) => {
+      if (img.complete) return;
+      img.addEventListener("load", () => ScrollTrigger.refresh(), { once: true });
+    });
+
+    requestAnimationFrame(() => ScrollTrigger.refresh());
+  }
+
+  initGalleryScroll(galleryRootId);
 </script>

@@ -1,5 +1,6 @@
 import { defineField, defineType } from "sanity";
 import { orderRankField } from "@sanity/orderable-document-list";
+import { contentSectionsField, portableBodyField } from "./blockContent";
 
 export const page = defineType({
   name: "page",
@@ -27,20 +28,13 @@ export const page = defineType({
       rows: 2,
     }),
     defineField({
-      name: "body",
+      ...portableBodyField,
       title: "Sadržaj",
-      type: "array",
-      of: [
-        { type: "block" },
-        {
-          type: "image",
-          options: { hotspot: true },
-          fields: [
-            defineField({ name: "alt", title: "Alternativni tekst", type: "string" }),
-            defineField({ name: "caption", title: "Opis", type: "string" }),
-          ],
-        },
-      ],
+    }),
+    defineField({
+      ...contentSectionsField,
+      title: "Sekcije",
+      description: "Dodaj stavke: video, galerija slika, tekst preko cele širine, animirani tekst — isto kao na blog postu.",
     }),
   ],
   preview: {

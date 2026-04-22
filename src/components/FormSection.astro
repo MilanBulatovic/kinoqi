@@ -1,0 +1,147 @@
+---
+interface Props {
+  /** Jedinstven po sekciji (npr. Sanity _key) — za id forme i skriptu */
+  instanceId: string;
+  heading?: string;
+  nameLabel?: string;
+  emailLabel?: string;
+  messageLabel?: string;
+  submitLabel?: string;
+  actionUrl?: string;
+}
+
+const {
+  instanceId,
+  heading,
+  nameLabel = "Ime",
+  emailLabel = "Email",
+  messageLabel = "Poruka",
+  submitLabel = "Pošalji",
+  actionUrl,
+} = Astro.props;
+
+const safeId = instanceId.replace(/[^a-zA-Z0-9_-]/g, "-");
+const formId = `contact-form-${safeId}`;
+const hasAction = Boolean(actionUrl?.trim());
+---
+
+<section class="section form-section" aria-labelledby={heading ? `${formId}-h` : undefined}>
+  {heading && <h2 id={`${formId}-h`} class="form-section__heading">{heading}</h2>}
+  <form
+    id={formId}
+    class="form-section__form"
+    method="post"
+    action={hasAction ? actionUrl : undefined}
+    data-has-action={hasAction ? "true" : "false"}
+  >
+    <div class="form-section__field">
+      <label for={`${formId}-name`}>{nameLabel}</label>
+      <input id={`${formId}-name`} type="text" name="name" autocomplete="name" required />
+    </div>
+    <div class="form-section__field">
+      <label for={`${formId}-email`}>{emailLabel}</label>
+      <input id={`${formId}-email`} type="email" name="email" autocomplete="email" required />
+    </div>
+    <div class="form-section__field">
+      <label for={`${formId}-message`}>{messageLabel}</label>
+      <textarea id={`${formId}-message`} name="message" rows="5" required></textarea>
+    </div>
+    <p class="form-section__hint" data-form-hint hidden tabindex="-1">
+      Podesite polje „URL za slanje” u Sanityju da bi forma radila.
+    </p>
+    <button type="submit" class="form-section__submit">{submitLabel}</button>
+  </form>
+</section>
+
+<style>
+  .form-section {
+    max-width: 100%;
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  .form-section__heading {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .form-section__form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-section__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .form-section__field label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .form-section__field input,
+  .form-section__field textarea {
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font: inherit;
+    background: #fff;
+  }
+
+  .form-section__field textarea {
+    resize: vertical;
+    min-height: 6rem;
+  }
+
+  .form-section__field input:focus,
+  .form-section__field textarea:focus {
+    outline: 2px solid #111827;
+    outline-offset: 1px;
+    border-color: #111827;
+  }
+
+  .form-section__hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #b45309;
+  }
+
+  .form-section__submit {
+    align-self: flex-start;
+    margin-top: 0.25rem;
+    padding: 0.65rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: #fff;
+    background: #111827;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+  }
+
+  .form-section__submit:hover {
+    background: #1f2937;
+  }
+
+  .form-section__submit:focus-visible {
+    outline: 2px solid #111827;
+    outline-offset: 2px;
+  }
+</style>
+
+<script define:vars={{ formId }}>
+  const form = document.getElementById(formId);
+  if (form && form.dataset.hasAction !== "true") {
+    const hint = form.querySelector("[data-form-hint]");
+    hint?.removeAttribute("hidden");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      hint?.focus?.();
+    });
+  }
+</script>

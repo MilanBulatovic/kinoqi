@@ -1,6 +1,7 @@
 ---
 import { sanityClient } from "@/sanity/client";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import MediaSection from "@/components/MediaSection.astro";
 
 export async function getStaticPaths() {
   const pages = await sanityClient.fetch<Array<{ slug: { current: string } }>>(
@@ -10,6 +11,46 @@ export async function getStaticPaths() {
 }
 
 const { slug } = Astro.params;
+
+type Section =
+  | { _key: string; _type: "videoSection"; url: string; caption?: string }
+  | {
+      _key: string;
+      _type: "gallerySection";
+      images?: Array<{
+        _key: string;
+        src?: string | null;
+        asset?: { url?: string } | null;
+        alt?: string;
+        caption?: string;
+      }>;
+    }
+  | {
+      _key: string;
+      _type: "animationTextSection";
+      content?: Array<{
+        _type: string;
+        _key: string;
+        style?: string;
+        children?: Array<{ text: string; _type: string; marks?: string[] }>;
+      }>;
+    }
+  | {
+      _key: string;
+      _type: "fullWidthTextSection";
+      backgroundImage?: { asset: { url: string }; hotspot?: { x: number; y: number } };
+      text?: string;
+    }
+  | {
+      _key: string;
+      _type: "formSection";
+      heading?: string;
+      nameLabel?: string;
+      emailLabel?: string;
+      messageLabel?: string;
+      submitLabel?: string;
+      actionUrl?: string;
+    };
 
 const page = await sanityClient.fetch<{
   title: string;
@@ -23,6 +64,7 @@ const page = await sanityClient.fetch<{
     alt?: string;
     caption?: string;
   }>;
+  sections?: Section[];
 } | null>(
   `*[_type == "page" && slug.current == $slug][0]{
     title,
@@ -30,6 +72,22 @@ const page = await sanityClient.fetch<{
     body[]{
       ...,
       asset->{ url }
+    },
+    sections[]{
+      _key,
+      _type,
+      url,
+      caption,
+      images[]{ _key, alt, caption, "src": asset->url, asset->{ url } },
+      content,
+      backgroundImage{ asset->{ url }, hotspot },
+      text,
+      heading,
+      nameLabel,
+      emailLabel,
+      messageLabel,
+      submitLabel,
+      actionUrl
     }
   }`,
   { slug }
@@ -40,20 +98,22 @@ if (!page) return Astro.redirect("/404");
 type PageBody = NonNullable<typeof page>["body"];
 function renderBody(blocks: PageBody): string {
   if (!blocks) return "";
-  return blocks.map((block) => {
-    if (block._type === "image" && block.asset?.url) {
-      return `<figure class="page-image">
+  return blocks
+    .map((block) => {
+      if (block._type === "image" && block.asset?.url) {
+        return `<figure class="page-image">
         <img src="${block.asset.url}" alt="${block.alt ?? ""}" loading="lazy" />
         ${block.caption ? `<figcaption>${block.caption}</figcaption>` : ""}
       </figure>`;
-    }
-    if (block._type === "block") {
-      const text = block.children?.map((c) => c.text).join("") ?? "";
-      const tag = block.style ?? "p";
-      return `<${tag}>${text}</${tag}>`;
-    }
-    return "";
-  }).join("");
+      }
+      if (block._type === "block") {
+        const text = block.children?.map((c) => c.text).join("") ?? "";
+        const tag = block.style ?? "p";
+        return `<${tag}>${text}</${tag}>`;
+      }
+      return "";
+    })
+    .join("");
 }
 ---
 
@@ -61,28 +121,86 @@ function renderBody(blocks: PageBody): string {
   <main class="container">
     <article class="page">
       <h1>{page.title}</h1>
-      {page.body && page.body.length > 0 && (
-        <div class="page-body" set:html={renderBody(page.body)} />
-      )}
+      {
+        page.body && page.body.length > 0 && (
+          <div class="page-body" set:html={renderBody(page.body)} />
+        )
+      }
+      <MediaSection sections={page.sections} />
     </article>
   </main>
 </BaseLayout>
 
 <style>
-  .container { max-width: 800px; margin: 0 auto; padding: 0 1.5rem; margin-top: 100px; }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    margin-top: 100px;
+  }
 
-  .page { padding: 4rem 0 5rem; }
+  .page {
+    padding: 4rem 0 5rem;
+  }
 
-  h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; line-height: 1.2; margin-bottom: 2rem; }
+  h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 2rem;
+  }
 
-  .page-body :global(p) { margin-bottom: 1.25rem; font-size: 1.0625rem; line-height: 1.8; }
-  .page-body :global(h2) { font-size: 1.5rem; font-weight: 700; margin: 2rem 0 0.75rem; }
-  .page-body :global(h3) { font-size: 1.25rem; font-weight: 700; margin: 1.5rem 0 0.5rem; }
-  .page-body :global(h4) { font-size: 1.1rem; font-weight: 700; margin: 1.25rem 0 0.5rem; }
-  .page-body :global(ul), .page-body :global(ol) { padding-left: 1.5rem; margin-bottom: 1.25rem; }
-  .page-body :global(li) { margin-bottom: 0.4rem; font-size: 1.0625rem; line-height: 1.8; }
+  .page-body :global(p) {
+    margin-bottom: 1.25rem;
+    font-size: 1.0625rem;
+    line-height: 1.8;
+  }
 
-  .page-body :global(.page-image) { margin: 2rem 0; }
-  .page-body :global(.page-image img) { width: 100%; height: auto; border-radius: 0.75rem; display: block; }
-  .page-body :global(.page-image figcaption) { margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-muted); text-align: center; }
+  .page-body :global(h2) {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 2rem 0 0.75rem;
+  }
+
+  .page-body :global(h3) {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 1.5rem 0 0.5rem;
+  }
+
+  .page-body :global(h4) {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 1.25rem 0 0.5rem;
+  }
+
+  .page-body :global(ul),
+  .page-body :global(ol) {
+    padding-left: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .page-body :global(li) {
+    margin-bottom: 0.4rem;
+    font-size: 1.0625rem;
+    line-height: 1.8;
+  }
+
+  .page-body :global(.page-image) {
+    margin: 2rem 0;
+  }
+
+  .page-body :global(.page-image img) {
+    width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    display: block;
+  }
+
+  .page-body :global(.page-image figcaption) {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-align: center;
+  }
 </style>

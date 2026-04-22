@@ -1,6 +1,9 @@
 ---
+import { galleryImageSrc } from "@/lib/galleryImageUrl";
 import { sanityClient } from "@/sanity/client";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import MediaSection from "@/components/MediaSection.astro";
+import GallerySection from "@/components/GallerySection.astro";
 
 export async function getStaticPaths() {
   const galleries = await sanityClient.fetch<Array<{ slug: { current: string } }>>(
@@ -11,13 +14,71 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params;
 
+type Section =
+  | { _key: string; _type: "videoSection"; url: string; caption?: string }
+  | {
+      _key: string;
+      _type: "gallerySection";
+      images?: Array<{
+        _key: string;
+        src?: string | null;
+        asset?: { url?: string } | null;
+        alt?: string;
+        caption?: string;
+      }>;
+    }
+  | {
+      _key: string;
+      _type: "animationTextSection";
+      content?: Array<{
+        _type: string;
+        _key: string;
+        style?: string;
+        children?: Array<{ text: string; _type: string; marks?: string[] }>;
+      }>;
+    }
+  | {
+      _key: string;
+      _type: "fullWidthTextSection";
+      backgroundImage?: { asset: { url: string }; hotspot?: { x: number; y: number } };
+      text?: string;
+    }
+  | {
+      _key: string;
+      _type: "formSection";
+      heading?: string;
+      nameLabel?: string;
+      emailLabel?: string;
+      messageLabel?: string;
+      submitLabel?: string;
+      actionUrl?: string;
+    };
+
+type BodyBlock =
+  | {
+      _type: "block";
+      _key: string;
+      style?: string;
+      children?: Array<{ text: string; _type: string; marks?: string[] }>;
+    }
+  | {
+      _type: "image";
+      _key: string;
+      asset?: { url: string };
+      alt?: string;
+    };
+
 const gallery = await sanityClient.fetch<{
   title: string;
   description?: string;
   publishedAt?: string;
+  coverImage?: { asset: { url: string }; alt?: string };
+  body?: BodyBlock[];
+  sections?: Section[];
   images?: Array<{
     _key: string;
-    asset: { url: string };
+    src?: string | null;
+    asset?: { url?: string } | null;
     alt?: string;
     caption?: string;
   }>;
@@ -26,64 +87,201 @@ const gallery = await sanityClient.fetch<{
     title,
     description,
     publishedAt,
-    images[]{ _key, asset->{ url }, alt, caption }
+    coverImage{ asset->{ url }, alt },
+    body[]{
+      ...,
+      asset->{ url }
+    },
+    sections[]{
+      _key,
+      _type,
+      url,
+      caption,
+      images[]{ _key, alt, caption, "src": asset->url, asset->{ url } },
+      content,
+      backgroundImage{ asset->{ url }, hotspot },
+      text,
+      heading,
+      nameLabel,
+      emailLabel,
+      messageLabel,
+      submitLabel,
+      actionUrl
+    },
+    images[]{ _key, alt, caption, "src": asset->url, asset->{ url } }
   }`,
   { slug }
 );
 
 if (!gallery) return Astro.redirect("/404");
 
+const legacyGalleryImages = (gallery.images ?? []).filter((img) => galleryImageSrc(img));
+
 const formattedDate = gallery.publishedAt
   ? new Date(gallery.publishedAt).toLocaleDateString("sr-RS", {
-      year: "numeric", month: "long", day: "numeric",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     })
   : null;
+
+function renderBodyBlock(block: BodyBlock): string {
+  if (block._type === "image" && block.asset?.url) {
+    return `<figure class="gallery-body__figure">
+      <img src="${block.asset.url}" alt="${block.alt ?? ""}" loading="lazy" width="900" height="600" />
+    </figure>`;
+  }
+  if (block._type === "block") {
+    const text = block.children?.map((c) => c.text).join("") ?? "";
+    const tag = block.style ?? "p";
+    return `<${tag}>${text}</${tag}>`;
+  }
+  return "";
+}
 ---
 
-<BaseLayout title={`${gallery.title} – Galerija`} description={gallery.description} currentPath="/galerija">
+<BaseLayout
+  title={`${gallery.title} – Galerija`}
+  description={gallery.description}
+  currentPath={`/galerija/${slug}`}
+>
   <main class="container">
     <a href="/galerija" class="back-link">← Sve galerije</a>
 
-    <div class="gallery-header">
-      <h1>{gallery.title}</h1>
-      {formattedDate && <time>{formattedDate}</time>}
-      {gallery.description && <p class="gallery-description">{gallery.description}</p>}
-    </div>
+    <article class="gallery-article">
+      <header class="gallery-header">
+        <h1>{gallery.title}</h1>
+        {formattedDate && <time>{formattedDate}</time>}
+        {gallery.description && <p class="gallery-description">{gallery.description}</p>}
+      </header>
 
-    {
-      gallery.images && gallery.images.length > 0 ? (
-        <div class="masonry-grid">
-          {gallery.images.map((image) => (
-            <figure class="masonry-item">
-              <img src={image.asset.url} alt={image.alt ?? ""} loading="lazy" />
-              {image.caption && <figcaption>{image.caption}</figcaption>}
-            </figure>
-          ))}
-        </div>
-      ) : (
-        <p class="empty">Galerija je prazna.</p>
-      )
-    }
+      {
+        gallery.coverImage?.asset && (
+          <img
+            src={gallery.coverImage.asset.url}
+            alt={gallery.coverImage.alt ?? gallery.title}
+            class="gallery-hero"
+            width="1100"
+            height="620"
+            loading="eager"
+          />
+        )
+      }
+
+      {
+        gallery.body && gallery.body.length > 0 && (
+          <div class="gallery-body" set:html={gallery.body.map(renderBodyBlock).join("")} />
+        )
+      }
+
+      <MediaSection sections={gallery.sections} />
+
+      {
+        legacyGalleryImages.length > 0 && (
+          <div class="legacy-gallery-block">
+            <h2 class="legacy-gallery-block__title">Slike</h2>
+            <GallerySection images={legacyGalleryImages} instanceId="legacy-root-images" />
+          </div>
+        )
+      }
+    </article>
   </main>
 </BaseLayout>
 
 <style>
-  .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    margin-top: 100px;
+  }
 
-  .back-link { display: inline-block; color: var(--color-muted); text-decoration: none; margin: 2rem 0 1.5rem; font-size: 0.9rem; }
-  .back-link:hover { color: var(--color-primary); }
+  .back-link {
+    display: inline-block;
+    color: var(--color-muted);
+    text-decoration: none;
+    margin: 0 0 1.5rem;
+    font-size: 0.9rem;
+  }
 
-  .gallery-header { margin-bottom: 2.5rem; }
-  .gallery-header h1 { font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 800; line-height: 1.2; margin-bottom: 0.5rem; }
-  .gallery-header time { display: block; color: var(--color-muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
-  .gallery-description { color: var(--color-muted); font-size: 1rem; max-width: 60ch; }
+  .back-link:hover {
+    color: var(--color-primary);
+  }
 
-  .masonry-grid { columns: 3 280px; gap: 1rem; padding-bottom: 4rem; }
+  .gallery-article {
+    padding-bottom: 4rem;
+  }
 
-  .masonry-item { break-inside: avoid; margin-bottom: 1rem; border-radius: 0.5rem; overflow: hidden; background: #e5e7eb; }
-  .masonry-item img { width: 100%; height: auto; display: block; transition: transform 0.3s ease; }
-  .masonry-item:hover img { transform: scale(1.02); }
-  .masonry-item figcaption { padding: 0.5rem 0.75rem; font-size: 0.8rem; color: var(--color-muted); background: #fff; }
+  .gallery-header {
+    margin-bottom: 2rem;
+  }
 
-  .empty { text-align: center; padding: 4rem 0; color: var(--color-muted); }
+  .gallery-header h1 {
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+  }
+
+  .gallery-header time {
+    display: block;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .gallery-description {
+    color: var(--color-muted);
+    font-size: 1.05rem;
+    max-width: 65ch;
+    line-height: 1.65;
+  }
+
+  .gallery-hero {
+    width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    margin-bottom: 2.5rem;
+    object-fit: cover;
+  }
+
+  .gallery-body {
+    font-size: 1.0625rem;
+    line-height: 1.8;
+    margin-bottom: 2rem;
+  }
+
+  .gallery-body :global(h1),
+  .gallery-body :global(h2),
+  .gallery-body :global(h3),
+  .gallery-body :global(h4) {
+    margin: 2rem 0 0.75rem;
+    line-height: 1.3;
+  }
+
+  .gallery-body :global(p) {
+    margin-bottom: 1.25rem;
+  }
+
+  .gallery-body :global(.gallery-body__figure) {
+    margin: 2rem 0;
+  }
+
+  .gallery-body :global(.gallery-body__figure img) {
+    width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    display: block;
+  }
+
+  /* Isti grid kao u sekciji posta (GallerySection) */
+  .legacy-gallery-block {
+    margin-top: 3rem;
+  }
+
+  .legacy-gallery-block__title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
 </style>

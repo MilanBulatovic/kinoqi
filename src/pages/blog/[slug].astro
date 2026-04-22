@@ -26,7 +26,8 @@ const post = await sanityClient.fetch<{
         _type: "gallerySection";
         images?: Array<{
           _key: string;
-          asset: { url: string };
+          src?: string | null;
+          asset?: { url?: string } | null;
           alt?: string;
           caption?: string;
         }>;
@@ -47,6 +48,16 @@ const post = await sanityClient.fetch<{
         backgroundImage?: { asset: { url: string }; hotspot?: { x: number; y: number } };
         text?: string;
       }
+    | {
+        _key: string;
+        _type: "formSection";
+        heading?: string;
+        nameLabel?: string;
+        emailLabel?: string;
+        messageLabel?: string;
+        submitLabel?: string;
+        actionUrl?: string;
+      }
   >;
   body?: Array<{
     _type: string;
@@ -65,10 +76,16 @@ const post = await sanityClient.fetch<{
       _type,
       url,
       caption,
-      images[]{ _key, asset->{ url }, alt, caption },
+      images[]{ _key, alt, caption, "src": asset->url, asset->{ url } },
       content,
       backgroundImage{ asset->{ url }, hotspot },
-      text
+      text,
+      heading,
+      nameLabel,
+      emailLabel,
+      messageLabel,
+      submitLabel,
+      actionUrl
     },
     body
   }`,
