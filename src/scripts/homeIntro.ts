@@ -52,7 +52,6 @@ function initFooterToggle(footer: HTMLElement, trigger: HTMLElement) {
       trigger.textContent = "✕ zatvori";
       const tl = gsap.timeline({ onComplete: () => { busy = false; } });
       tl.to(footer, { height: "auto", duration: 0.7, ease: "expo.out" });
-      tl.to(footer, { opacity: 1, duration: 0.4, ease: "power2.out" }, "<0.2");
       tl.to(
         items,
         {
@@ -65,7 +64,7 @@ function initFooterToggle(footer: HTMLElement, trigger: HTMLElement) {
             footer.style.overflow = "";
           },
         },
-        "<0.1",
+        "<0.15",
       );
       tl.to(window, { scrollTo: footer, duration: 0.7, ease: "power2.inOut" }, "<");
     } else {
@@ -74,9 +73,8 @@ function initFooterToggle(footer: HTMLElement, trigger: HTMLElement) {
       footer.style.overflow = "hidden";
       const tl = gsap.timeline({ onComplete: () => { busy = false; } });
       tl.to(window, { scrollTo: 0, duration: 0.55, ease: "power2.inOut" });
-      tl.to(items, { opacity: 0, y: 30, duration: 0.4, stagger: { each: 0.08, from: "end" }, ease: "power2.in" }, "<0.1");
-      tl.to(footer, { opacity: 0, duration: 0.3, ease: "power1.in" }, "<0.2");
-      tl.to(footer, { height: 0, duration: 0.5, ease: "expo.in" }, "<0.1");
+      tl.to(items, { opacity: 0, y: 30, duration: 0.4, stagger: { each: 0.08, from: "end" }, ease: "power2.in" });
+      tl.to(footer, { height: 0, duration: 0.55, ease: "expo.in" }, ">-0.15");
     }
   });
 }
@@ -114,7 +112,8 @@ function initPage() {
   introEl.dataset.introInit = "1";
 
   document.body.classList.add("homepage");
-  gsap.set(footer, { height: 0, opacity: 0, overflow: "hidden" });
+  /* Samo visina: footer ostaje neproziran (var(--color-dark)) da se ne vidi #f9fafb ispod. */
+  gsap.set(footer, { height: 0, overflow: "hidden" });
 
   document.body.classList.add("intro-active");
   gsap.fromTo(introVideoWrap, { scale: 1.08 }, { scale: 1, duration: 2.4, ease: "power2.out" });

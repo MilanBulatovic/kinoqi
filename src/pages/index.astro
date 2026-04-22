@@ -344,10 +344,9 @@ const introVideoAttrs = { fetchpriority: "high" } as Record<string, string>;
     width: 100%;
   }
 
-  /* ── Footer hidden by default on homepage ───────────────── */
+  /* ── Footer: samo sužena visina — nema opacity:0 da ne „bleše“ telo (svetlo) ispod */
   body.homepage #site-footer {
     overflow: hidden;
     height: 0;
-    opacity: 0;
   }
 </style>
