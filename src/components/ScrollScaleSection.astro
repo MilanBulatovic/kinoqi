@@ -146,11 +146,11 @@ function renderBlocks(blocks: Block[] | undefined): string {
     overflow: hidden;
   }
 
-  /* Pun ekran cover — skalira GSAP */
+  /* Pun ekran cover — GSAP skalira od 0 → 1 pri ulazu sloja */
   .scroll-scale-panel__media {
     position: absolute;
     inset: 0;
-    transform: scale(0.82);
+    transform: scale(0);
     transform-origin: center center;
     will-change: transform;
   }
@@ -242,9 +242,15 @@ function renderBlocks(blocks: Block[] | undefined): string {
 
   gsap.registerPlugin(ScrollTrigger);
 
-  const MIN_SCALE = 0.82;
   const TEXT_DELAY = 0.14;
   const TEXT_WINDOW = 0.62;
+  /** Ukupno više skrola dok je sekcija pinovana (per panel × viewport). */
+  const SCROLL_LENGTH_MULT = 1.42;
+  /**
+   * U svakom segmentu: samo prvi deo skrola vodi animaciju do „full“;
+   * ostatak segmenta drži panel na punoj skali pre sledećeg.
+   */
+  const INTRO_RATIO = 0.48;
 
   function smoothstep(t: number): number {
     const x = Math.max(0, Math.min(1, t));
@@ -263,7 +269,7 @@ function renderBlocks(blocks: Block[] | undefined): string {
       ScrollTrigger.create({
         trigger: section,
         start: "top top",
-        end: () => `+=${count * window.innerHeight}`,
+        end: () => `+=${count * window.innerHeight * SCROLL_LENGTH_MULT}`,
         pin: pin,
         anticipatePin: 1,
         scrub: 0.52,
@@ -280,13 +286,22 @@ function renderBlocks(blocks: Block[] | undefined): string {
 
             const t0 = i * segment;
             const local = (p - t0) / segment;
-            const u = smoothstep(Math.max(0, Math.min(1, local)));
-            const scale = MIN_SCALE + u * (1 - MIN_SCALE);
+
+            /* Još nije „na redu“ — sloj je nevidljiv (ne bleši kao ~0.82 iza) */
+            if (local < -1e-6) {
+              gsap.set(media, { scale: 0 });
+              if (textEl) gsap.set(textEl, { opacity: 0, y: 36 });
+              return;
+            }
+
+            const rawAnim = Math.max(0, local) / INTRO_RATIO;
+            const animT = Math.min(1, rawAnim);
+            const u = smoothstep(animT);
+            const scale = u;
             gsap.set(media, { scale });
 
             if (textEl) {
-              const raw = (p - t0) / segment;
-              const shifted = (raw - TEXT_DELAY) / TEXT_WINDOW;
+              const shifted = (animT - TEXT_DELAY) / TEXT_WINDOW;
               const te = smoothstep(Math.max(0, Math.min(1, shifted)));
               gsap.set(textEl, {
                 opacity: te,
