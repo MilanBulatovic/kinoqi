@@ -37,29 +37,46 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
 }
 ---
 
-<header class:list={["site-header", { "site-header--solid": !isHome }]}>
+<header class:list={["site-header", { "site-header--solid": !isHome }]} data-header-root>
   <div class="container">
     <a href="/" class="site-logo" aria-label="Kinoqi" data-astro-reload>kinoqi</a>
 
     {
       menuItems.length > 0 && (
-        <nav id="main-nav">
-          <span class="nav-pill" id="nav-pill" aria-hidden="true"></span>
-          {menuItems.map((item) => {
-            const href = resolveUrl(item);
-            return (
-              <a
-                href={href}
-                class:list={["nav-link", { active: currentPath === href }]}
-                target={item.openInNewTab ? "_blank" : undefined}
-                rel={item.openInNewTab ? "noopener noreferrer" : undefined}
-                data-astro-reload={href === "/" ? true : undefined}
-              >
-                {item.title}
-              </a>
-            );
-          })}
-        </nav>
+        <>
+          <button
+            type="button"
+            class="nav-toggle"
+            id="nav-toggle"
+            aria-label="Meni"
+            aria-expanded="false"
+            aria-controls="main-nav"
+          >
+            <svg class="nav-toggle__svg" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+              <line class="nav-toggle__line nav-toggle__line--top" x1="4" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <line class="nav-toggle__line nav-toggle__line--mid" x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <line class="nav-toggle__line nav-toggle__line--bot" x1="4" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+          <div class="nav-backdrop" id="nav-backdrop" aria-hidden="true"></div>
+          <nav id="main-nav" class="main-nav">
+            <span class="nav-pill" id="nav-pill" aria-hidden="true"></span>
+            {menuItems.map((item) => {
+              const href = resolveUrl(item);
+              return (
+                <a
+                  href={href}
+                  class:list={["nav-link", { active: currentPath === href }]}
+                  target={item.openInNewTab ? "_blank" : undefined}
+                  rel={item.openInNewTab ? "noopener noreferrer" : undefined}
+                  data-astro-reload={href === "/" ? true : undefined}
+                >
+                  {item.title}
+                </a>
+              );
+            })}
+          </nav>
+        </>
       )
     }
   </div>
@@ -153,23 +170,116 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
   .nav-link.active {
     color: #fff;
   }
+
+  /* ── Mobile trigger ─────────────────────────────────────── */
+  .nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    cursor: pointer;
+    z-index: 160;
+    transition: background 0.2s;
+  }
+
+  .nav-toggle:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .nav-toggle:focus-visible {
+    outline: 2px solid rgba(232, 201, 154, 0.7);
+    outline-offset: 2px;
+  }
+
+  .nav-toggle__svg {
+    display: block;
+  }
+
+  .nav-backdrop {
+    display: none;
+  }
+
+  @media (max-width: 767px) {
+    .nav-toggle {
+      display: flex;
+    }
+
+    .nav-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 140;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .site-header.nav-open .nav-backdrop {
+      pointer-events: auto;
+    }
+
+    .main-nav {
+      position: fixed;
+      inset: 0;
+      z-index: 150;
+      flex-direction: column;
+      justify-content: center;
+      align-items: stretch;
+      gap: 0.35rem;
+      padding: 5rem 1.75rem 2rem;
+      max-width: none;
+      margin: 0;
+      background: linear-gradient(165deg, rgba(5, 20, 36, 0.97) 0%, rgba(10, 6, 30, 0.96) 100%);
+      backdrop-filter: blur(14px);
+      pointer-events: none;
+      visibility: hidden;
+    }
+
+    /* Klik mora da stigne do <a> — inače CSS pointer-events: none na navu blokira sve */
+    .site-header.nav-open .main-nav {
+      pointer-events: auto;
+    }
+
+    .nav-pill {
+      display: none;
+    }
+
+    .nav-link {
+      font-size: 1.35rem;
+      padding: 0.85rem 1rem;
+      text-align: center;
+      border-radius: 12px;
+      background: transparent;
+    }
+  }
 </style>
 
 <script>
   import gsap from "gsap";
 
-  function initPill() {
-    const nav  = document.getElementById("main-nav");
-    const pill = document.getElementById("nav-pill");
-    if (!nav || !pill) return;
+  const MQ = "(min-width: 768px)";
+  let headerCleanup: AbortController | null = null;
 
-    const links  = Array.from(nav.querySelectorAll<HTMLElement>(".nav-link"));
+  function initPill(signal: AbortSignal) {
+    const nav = document.getElementById("main-nav");
+    const pill = document.getElementById("nav-pill");
+    if (!nav || !pill || !window.matchMedia(MQ).matches) return;
+
+    const links = Array.from(nav.querySelectorAll<HTMLElement>(".nav-link"));
     const active = nav.querySelector<HTMLElement>(".nav-link.active");
     let clicking = false;
 
     function movePill(el: HTMLElement, animate = true) {
       const navRect = nav!.getBoundingClientRect();
-      const elRect  = el.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
       const x = elRect.left - navRect.left;
       const w = elRect.width;
 
@@ -192,24 +302,176 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
     if (active) movePill(active, false);
 
     links.forEach((link) => {
-      link.addEventListener("mouseenter", () => {
-        if (!clicking) movePill(link);
-      });
+      link.addEventListener(
+        "mouseenter",
+        () => {
+          if (!clicking) movePill(link);
+        },
+        { signal },
+      );
 
-      link.addEventListener("mouseleave", returnToActive);
+      link.addEventListener("mouseleave", returnToActive, { signal });
 
-      link.addEventListener("mousedown", () => {
-        clicking = true;
-        movePill(link);
-      });
+      link.addEventListener(
+        "mousedown",
+        () => {
+          clicking = true;
+          movePill(link);
+        },
+        { signal },
+      );
 
-      link.addEventListener("click", () => {
-        // keep pill on clicked link during navigation
-        setTimeout(() => { clicking = false; }, 600);
-      });
+      link.addEventListener(
+        "click",
+        () => {
+          setTimeout(() => {
+            clicking = false;
+          }, 600);
+        },
+        { signal },
+      );
     });
   }
 
-  initPill();
-  document.addEventListener("astro:after-swap", initPill);
+  function setHamburgerIcon(
+    top: Element | null,
+    mid: Element | null,
+    bot: Element | null,
+    isOpen: boolean,
+  ) {
+    if (!top || !mid || !bot) return;
+    const dur = 0.32;
+    const ease = "power3.inOut";
+    if (isOpen) {
+      gsap.to(top, { y: 5, rotation: 45, transformOrigin: "center", duration: dur, ease });
+      gsap.to(mid, { opacity: 0, scaleX: 0, duration: dur * 0.45, ease });
+      gsap.to(bot, { y: -5, rotation: -45, transformOrigin: "center", duration: dur, ease });
+    } else {
+      gsap.to(top, { y: 0, rotation: 0, duration: dur, ease });
+      gsap.to(mid, { opacity: 1, scaleX: 1, duration: dur * 0.55, ease, delay: 0.06 });
+      gsap.to(bot, { y: 0, rotation: 0, duration: dur, ease });
+    }
+  }
+
+  function initMobileNav(signal: AbortSignal) {
+    const header = document.querySelector<HTMLElement>("[data-header-root]");
+    const toggle = document.getElementById("nav-toggle");
+    const nav = document.getElementById("main-nav");
+    const backdrop = document.getElementById("nav-backdrop");
+    if (!header || !toggle || !nav || !backdrop) return;
+
+    const lineTop = toggle.querySelector(".nav-toggle__line--top");
+    const lineMid = toggle.querySelector(".nav-toggle__line--mid");
+    const lineBot = toggle.querySelector(".nav-toggle__line--bot");
+    const linkEls = nav.querySelectorAll<HTMLElement>(".nav-link");
+
+    let open = false;
+    let menuTl: gsap.core.Timeline | null = null;
+
+    const mq = window.matchMedia(MQ);
+
+    function closeMenu() {
+      if (!open || !header || !toggle) return;
+      open = false;
+      header.classList.remove("nav-open");
+      toggle.setAttribute("aria-expanded", "false");
+      menuTl?.kill();
+      menuTl = null;
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          document.body.style.overflow = "";
+          gsap.set(nav, { clearProps: "transform,opacity,visibility,pointerEvents" });
+          gsap.set(backdrop, { clearProps: "opacity,visibility,pointerEvents" });
+          gsap.set(linkEls, { clearProps: "transform,opacity" });
+        },
+      });
+      tl.to(
+        linkEls,
+        { y: 20, opacity: 0, duration: 0.2, stagger: { each: 0.035, from: "end" }, ease: "power2.in" },
+        0,
+      );
+      tl.to(nav, { y: "-6%", autoAlpha: 0, duration: 0.32, ease: "power3.in" }, 0.04);
+      tl.to(backdrop, { autoAlpha: 0, duration: 0.28, ease: "power2.in" }, 0);
+      setHamburgerIcon(lineTop, lineMid, lineBot, false);
+    }
+
+    function openMenu() {
+      if (open || mq.matches || !header || !toggle) return;
+      open = true;
+      header.classList.add("nav-open");
+      toggle.setAttribute("aria-expanded", "true");
+      menuTl?.kill();
+      document.body.style.overflow = "hidden";
+
+      gsap.set(nav, { y: "-10%", autoAlpha: 0 });
+      gsap.set(backdrop, { autoAlpha: 0 });
+      gsap.set(linkEls, { y: 32, opacity: 0 });
+
+      menuTl = gsap.timeline();
+      menuTl.to(backdrop, { autoAlpha: 1, duration: 0.34, ease: "power2.out" }, 0);
+      menuTl.to(nav, { y: "0%", autoAlpha: 1, duration: 0.52, ease: "expo.out" }, 0.05);
+      menuTl.to(
+        linkEls,
+        { y: 0, opacity: 1, duration: 0.42, stagger: 0.065, ease: "back.out(1.2)" },
+        "-=0.36",
+      );
+      setHamburgerIcon(lineTop, lineMid, lineBot, true);
+    }
+
+    function onToggleClick() {
+      if (mq.matches) return;
+      if (open) closeMenu();
+      else openMenu();
+    }
+
+    toggle.addEventListener("click", onToggleClick, { signal });
+    backdrop.addEventListener("click", closeMenu, { signal });
+
+    const onMq = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        closeMenu();
+        gsap.set([lineTop, lineMid, lineBot], { clearProps: "transform,opacity" });
+      }
+    };
+    mq.addEventListener("change", onMq, { signal });
+
+    /* Ne zatvaraj meni sinhrono na klik — može da ometa navigaciju; zatvori u sledećem frejmu */
+    linkEls.forEach((a) => {
+      a.addEventListener(
+        "click",
+        () => {
+          if (!mq.matches) requestAnimationFrame(() => closeMenu());
+        },
+        { signal },
+      );
+    });
+
+    document.addEventListener(
+      "keydown",
+      (e) => {
+        if (e.key === "Escape" && open) closeMenu();
+      },
+      { signal },
+    );
+  }
+
+  function initHeader() {
+    headerCleanup?.abort();
+    headerCleanup = new AbortController();
+    const { signal } = headerCleanup;
+
+    initMobileNav(signal);
+    initPill(signal);
+  }
+
+  initHeader();
+  document.addEventListener("astro:page-load", initHeader);
+
+  /* Ponovo veži pill / mobile posle rotacije uređaja (signal iz initHeader ne pokriva ovo) */
+  let mqResizeBound = false;
+  if (!mqResizeBound) {
+    mqResizeBound = true;
+    window.matchMedia(MQ).addEventListener("change", () => initHeader());
+  }
 </script>
