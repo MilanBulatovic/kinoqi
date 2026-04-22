@@ -28,6 +28,8 @@ const fullTitle = `${title} – Kinoqi`;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Stranice mogu ovde ranije da ubace preload (video / lottie) -->
+    <slot name="head" />
 
     <!-- Primary -->
     <title>{fullTitle}</title>
@@ -54,8 +56,6 @@ const fullTitle = `${title} – Kinoqi`;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <ViewTransitions />
 
-    <slot name="head" />
-
     <!-- Fonts: ne blokiraju prvi paint (FOUC kratko moguće) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -72,6 +72,7 @@ const fullTitle = `${title} – Kinoqi`;
     </noscript>
   </head>
   <body>
+    <slot name="intro" />
     <Header currentPath={currentPath} />
     <slot />
     <Footer />

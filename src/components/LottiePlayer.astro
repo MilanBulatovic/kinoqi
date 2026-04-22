@@ -57,15 +57,8 @@ const uid = id ?? `lottie-${Math.random().toString(36).slice(2, 8)}`;
     });
   }
 
-  function whenIdle(cb: () => void) {
-    const ric = (window as Window & { requestIdleCallback?: (fn: () => void, opts?: { timeout: number }) => number })
-      .requestIdleCallback;
-    if (typeof ric === "function") ric(cb, { timeout: 2500 });
-    else setTimeout(cb, 1);
-  }
-
   document.querySelectorAll<HTMLElement>(".lottie-player").forEach((el) => {
-    whenIdle(() => mountDotLottie(el));
+    mountDotLottie(el);
   });
 </script>
 
