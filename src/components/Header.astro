@@ -6,6 +6,7 @@ interface Props {
 }
 
 const { currentPath = "/" } = Astro.props;
+const isHome = currentPath === "/";
 
 const menuItems = await sanityClient.fetch<
   Array<{
@@ -36,13 +37,14 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
 }
 ---
 
-<header class="site-header">
+<header class:list={["site-header", { "site-header--solid": !isHome }]}>
   <div class="container">
-    <a href="/" class="site-logo" aria-label="Sanity | Astro">Sanity | Astro</a>
+    <a href="/" class="site-logo" aria-label="Kinoqi" data-astro-reload>kinoqi</a>
 
     {
       menuItems.length > 0 && (
-        <nav>
+        <nav id="main-nav">
+          <span class="nav-pill" id="nav-pill" aria-hidden="true"></span>
           {menuItems.map((item) => {
             const href = resolveUrl(item);
             return (
@@ -51,6 +53,7 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
                 class:list={["nav-link", { active: currentPath === href }]}
                 target={item.openInNewTab ? "_blank" : undefined}
                 rel={item.openInNewTab ? "noopener noreferrer" : undefined}
+                data-astro-reload={href === "/" ? true : undefined}
               >
                 {item.title}
               </a>
@@ -64,12 +67,18 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
 
 <style>
   .site-header {
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 1rem 0;
-    position: sticky;
+    background: transparent;
+    border-bottom: none;
+    padding: 1.25rem 0;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 100;
+  }
+
+  .site-header--solid {
+    background: var(--color-dark);
   }
 
   .container {
@@ -82,46 +91,125 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
   }
 
   .site-logo {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #242424;
+    font-family: "Kablammo", serif;
+    font-size: 1.6rem;
+    font-weight: 400;
     text-decoration: none;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.03em;
+    background: var(--logo-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   nav {
     display: flex;
-    gap: 1.5rem;
+    gap: 0.25rem;
     align-items: center;
-  }
-
-  .nav-link {
-    color: #374151;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 0.95rem;
-    transition: color 0.15s;
     position: relative;
   }
 
-  .nav-link::after {
-    content: "";
+  .nav-pill {
     position: absolute;
-    bottom: -2px;
+    top: 50%;
     left: 0;
-    width: 0;
-    height: 2px;
-    background: #4f46e5;
-    transition: width 0.2s ease;
+    height: 32px;
+    border-radius: 999px;
+    pointer-events: none;
+    transform: translateY(-50%);
+    opacity: 0;
+    backdrop-filter: blur(6px);
+    background: rgba(255, 255, 255, 0.07);
   }
 
-  .nav-link:hover::after,
-  .nav-link.active::after {
-    width: 100%;
+  .nav-pill::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    padding: 1px;
+    background: var(--logo-gradient);
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    position: relative;
+    z-index: 1;
+    transition: color 0.15s;
   }
 
   .nav-link:hover,
   .nav-link.active {
-    color: #4f46e5;
+    color: #fff;
   }
 </style>
+
+<script>
+  import gsap from "gsap";
+
+  function initPill() {
+    const nav  = document.getElementById("main-nav");
+    const pill = document.getElementById("nav-pill");
+    if (!nav || !pill) return;
+
+    const links  = Array.from(nav.querySelectorAll<HTMLElement>(".nav-link"));
+    const active = nav.querySelector<HTMLElement>(".nav-link.active");
+    let clicking = false;
+
+    function movePill(el: HTMLElement, animate = true) {
+      const navRect = nav!.getBoundingClientRect();
+      const elRect  = el.getBoundingClientRect();
+      const x = elRect.left - navRect.left;
+      const w = elRect.width;
+
+      if (animate) {
+        gsap.to(pill, { x, width: w, opacity: 1, duration: 0.3, ease: "power3.out" });
+      } else {
+        gsap.set(pill, { x, width: w, opacity: 1 });
+      }
+    }
+
+    function returnToActive() {
+      if (clicking) return;
+      if (active) {
+        movePill(active);
+      } else {
+        gsap.to(pill, { opacity: 0, duration: 0.2 });
+      }
+    }
+
+    if (active) movePill(active, false);
+
+    links.forEach((link) => {
+      link.addEventListener("mouseenter", () => {
+        if (!clicking) movePill(link);
+      });
+
+      link.addEventListener("mouseleave", returnToActive);
+
+      link.addEventListener("mousedown", () => {
+        clicking = true;
+        movePill(link);
+      });
+
+      link.addEventListener("click", () => {
+        // keep pill on clicked link during navigation
+        setTimeout(() => { clicking = false; }, 600);
+      });
+    });
+  }
+
+  initPill();
+  document.addEventListener("astro:after-swap", initPill);
+</script>

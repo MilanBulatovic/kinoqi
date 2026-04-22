@@ -97,7 +97,7 @@ function renderBlock(block: {
 }
 ---
 
-<BaseLayout title={post.title} description={post.excerpt}>
+<BaseLayout title={post.title} description={post.excerpt} currentPath={`/blog/${slug}`}>
   <main class="container">
     <article class="post">
       <a href="/blog" class="back-link">← Svi postovi</a>
@@ -134,6 +134,7 @@ function renderBlock(block: {
     max-width: 800px;
     margin: 0 auto;
     padding: 0 1.5rem;
+    margin-top: 100px;
   }
 
   .post {

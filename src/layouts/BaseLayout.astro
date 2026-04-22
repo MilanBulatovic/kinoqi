@@ -1,4 +1,5 @@
 ---
+import { ViewTransitions } from "astro:transitions";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 
@@ -51,6 +52,12 @@ const fullTitle = `${title} – Kinoqi`;
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <ViewTransitions />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Kablammo&display=swap" rel="stylesheet" />
   </head>
   <body>
     <Header currentPath={currentPath} />
@@ -65,6 +72,9 @@ const fullTitle = `${title} – Kinoqi`;
     --color-text: #111827;
     --color-muted: #6b7280;
     --color-bg: #f9fafb;
+    --header-height: 72px;
+    --logo-gradient: linear-gradient(120deg, #e8c99a 0%, #c97d4e 40%, #a85432 65%, #e2b97a 100%);
+    --color-dark: #051424;
   }
 
   *, *::before, *::after {
@@ -74,9 +84,13 @@ const fullTitle = `${title} – Kinoqi`;
   }
 
   body {
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: "Syne", system-ui, sans-serif;
     background: var(--color-bg);
     color: var(--color-text);
     line-height: 1.6;
+  }
+
+  body:not(.homepage) main {
+    padding-top: var(--header-height);
   }
 </style>

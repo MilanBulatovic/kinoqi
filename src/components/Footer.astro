@@ -25,17 +25,17 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
 }
 ---
 
-<footer class="site-footer">
+<footer id="site-footer" class="site-footer">
   <div class="container">
     <div class="footer-grid">
-      <div class="footer-brand">
+      <div class="footer-brand footer-anim">
         <a href="/" class="footer-logo">Kinoqi</a>
         <p>Sadržaj.</p>
       </div>
 
       {
         menuItems.length > 0 && (
-          <nav class="footer-nav">
+          <nav class="footer-nav footer-anim">
             <h3>Navigacija</h3>
             <ul>
               {menuItems.map((item) => (
@@ -49,7 +49,7 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
       }
     </div>
 
-    <div class="footer-bottom">
+    <div class="footer-bottom footer-anim">
       <p>&copy; {new Date().getFullYear()} Kinoqi. Sva prava zadržana.</p>
     </div>
   </div>
@@ -57,7 +57,7 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
 
 <style>
   .site-footer {
-    background: #111827;
+    background: var(--color-dark);
     color: #9ca3af;
     margin-top: auto;
   }
@@ -82,11 +82,15 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
   }
 
   .footer-logo {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #fff;
+    font-family: "Kablammo", serif;
+    font-size: 1.6rem;
+    font-weight: 400;
     text-decoration: none;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.03em;
+    background: var(--logo-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .footer-brand p {
