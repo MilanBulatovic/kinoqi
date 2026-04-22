@@ -1,0 +1,89 @@
+---
+import { sanityClient } from "@/sanity/client";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const galleries = await sanityClient.fetch<Array<{ slug: { current: string } }>>(
+    `*[_type == "gallery"]{ slug }`
+  );
+  return galleries.map((g) => ({ params: { slug: g.slug.current } }));
+}
+
+const { slug } = Astro.params;
+
+const gallery = await sanityClient.fetch<{
+  title: string;
+  description?: string;
+  publishedAt?: string;
+  images?: Array<{
+    _key: string;
+    asset: { url: string };
+    alt?: string;
+    caption?: string;
+  }>;
+} | null>(
+  `*[_type == "gallery" && slug.current == $slug][0]{
+    title,
+    description,
+    publishedAt,
+    images[]{ _key, asset->{ url }, alt, caption }
+  }`,
+  { slug }
+);
+
+if (!gallery) return Astro.redirect("/404");
+
+const formattedDate = gallery.publishedAt
+  ? new Date(gallery.publishedAt).toLocaleDateString("sr-RS", {
+      year: "numeric", month: "long", day: "numeric",
+    })
+  : null;
+---
+
+<BaseLayout title={`${gallery.title} – Galerija`} description={gallery.description} currentPath="/galerija">
+  <main class="container">
+    <a href="/galerija" class="back-link">← Sve galerije</a>
+
+    <div class="gallery-header">
+      <h1>{gallery.title}</h1>
+      {formattedDate && <time>{formattedDate}</time>}
+      {gallery.description && <p class="gallery-description">{gallery.description}</p>}
+    </div>
+
+    {
+      gallery.images && gallery.images.length > 0 ? (
+        <div class="masonry-grid">
+          {gallery.images.map((image) => (
+            <figure class="masonry-item">
+              <img src={image.asset.url} alt={image.alt ?? ""} loading="lazy" />
+              {image.caption && <figcaption>{image.caption}</figcaption>}
+            </figure>
+          ))}
+        </div>
+      ) : (
+        <p class="empty">Galerija je prazna.</p>
+      )
+    }
+  </main>
+</BaseLayout>
+
+<style>
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+  .back-link { display: inline-block; color: var(--color-muted); text-decoration: none; margin: 2rem 0 1.5rem; font-size: 0.9rem; }
+  .back-link:hover { color: var(--color-primary); }
+
+  .gallery-header { margin-bottom: 2.5rem; }
+  .gallery-header h1 { font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 800; line-height: 1.2; margin-bottom: 0.5rem; }
+  .gallery-header time { display: block; color: var(--color-muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
+  .gallery-description { color: var(--color-muted); font-size: 1rem; max-width: 60ch; }
+
+  .masonry-grid { columns: 3 280px; gap: 1rem; padding-bottom: 4rem; }
+
+  .masonry-item { break-inside: avoid; margin-bottom: 1rem; border-radius: 0.5rem; overflow: hidden; background: #e5e7eb; }
+  .masonry-item img { width: 100%; height: auto; display: block; transition: transform 0.3s ease; }
+  .masonry-item:hover img { transform: scale(1.02); }
+  .masonry-item figcaption { padding: 0.5rem 0.75rem; font-size: 0.8rem; color: var(--color-muted); background: #fff; }
+
+  .empty { text-align: center; padding: 4rem 0; color: var(--color-muted); }
+</style>

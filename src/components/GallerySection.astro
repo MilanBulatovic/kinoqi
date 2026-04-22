@@ -1,0 +1,110 @@
+---
+interface Props {
+  images: Array<{
+    _key: string;
+    asset: { url: string };
+    alt?: string;
+    caption?: string;
+  }>;
+}
+
+const { images } = Astro.props;
+
+const count = images.length;
+const gridClass =
+  count === 1 ? "gallery-grid--one"
+  : count === 2 ? "gallery-grid--two"
+  : "gallery-grid--many";
+---
+
+<div class="section gallery-section">
+  <div class:list={["gallery-grid", gridClass]}>
+    {images.map((image) => (
+      <figure class="gallery-item">
+        <img src={image.asset.url} alt={image.alt ?? ""} loading="lazy" />
+        {image.caption && <figcaption>{image.caption}</figcaption>}
+      </figure>
+    ))}
+  </div>
+</div>
+
+<style>
+  .section { margin: 0; }
+
+  .gallery-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .gallery-grid--one {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-grid--two {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gallery-grid--many {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  .gallery-item {
+    margin: 0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #e5e7eb;
+  }
+
+  .gallery-item img {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+
+  .gallery-grid--one .gallery-item img {
+    height: 480px;
+  }
+
+  .gallery-grid--two .gallery-item img {
+    height: 360px;
+  }
+
+  .gallery-item img:hover { transform: scale(1.03); }
+
+  .gallery-item figcaption {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  document.querySelectorAll<HTMLElement>(".gallery-item").forEach((item, i) => {
+    gsap.set(item, { opacity: 0, y: 40, scale: 0.97 });
+
+    const delay = (i % 3) * 0.15 + Math.random() * 0.2;
+
+    ScrollTrigger.create({
+      trigger: item,
+      start: "top 90%",
+      once: true,
+      onEnter: () => {
+        gsap.to(item, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.9,
+          ease: "power3.out",
+          delay,
+        });
+      },
+    });
+  });
+</script>

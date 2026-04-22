@@ -1,0 +1,189 @@
+---
+import { sanityClient } from "@/sanity/client";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import MediaSection from "@/components/MediaSection.astro";
+
+export async function getStaticPaths() {
+  const posts = await sanityClient.fetch<Array<{ slug: { current: string } }>>(
+    `*[_type == "post"]{ slug }`
+  );
+  return posts.map((post) => ({
+    params: { slug: post.slug.current },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const post = await sanityClient.fetch<{
+  title: string;
+  publishedAt?: string;
+  excerpt?: string;
+  mainImage?: { asset: { url: string }; alt?: string };
+  sections?: Array<
+    | { _key: string; _type: "videoSection"; url: string; caption?: string }
+    | {
+        _key: string;
+        _type: "gallerySection";
+        images?: Array<{
+          _key: string;
+          asset: { url: string };
+          alt?: string;
+          caption?: string;
+        }>;
+      }
+    | {
+        _key: string;
+        _type: "animationTextSection";
+        content?: Array<{
+          _type: string;
+          _key: string;
+          style?: string;
+          children?: Array<{ text: string; _type: string; marks?: string[] }>;
+        }>;
+      }
+    | {
+        _key: string;
+        _type: "fullWidthTextSection";
+        backgroundImage?: { asset: { url: string }; hotspot?: { x: number; y: number } };
+        text?: string;
+      }
+  >;
+  body?: Array<{
+    _type: string;
+    _key: string;
+    style?: string;
+    children?: Array<{ text: string; _type: string; marks?: string[] }>;
+  }>;
+} | null>(
+  `*[_type == "post" && slug.current == $slug][0]{
+    title,
+    publishedAt,
+    excerpt,
+    mainImage{ asset->{ url }, alt },
+    sections[]{
+      _key,
+      _type,
+      url,
+      caption,
+      images[]{ _key, asset->{ url }, alt, caption },
+      content,
+      backgroundImage{ asset->{ url }, hotspot },
+      text
+    },
+    body
+  }`,
+  { slug }
+);
+
+if (!post) return Astro.redirect("/404");
+
+const formattedDate = post.publishedAt
+  ? new Date(post.publishedAt).toLocaleDateString("sr-RS", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  : null;
+
+function renderBlock(block: {
+  _type: string;
+  style?: string;
+  children?: Array<{ text: string; _type: string; marks?: string[] }>;
+}): string {
+  if (block._type !== "block") return "";
+  const text = block.children?.map((c) => c.text).join("") ?? "";
+  const tag = block.style ?? "p";
+  return `<${tag}>${text}</${tag}>`;
+}
+---
+
+<BaseLayout title={post.title} description={post.excerpt}>
+  <main class="container">
+    <article class="post">
+      <a href="/blog" class="back-link">← Svi postovi</a>
+
+      <h1>{post.title}</h1>
+      {formattedDate && <time class="post-date">{formattedDate}</time>}
+
+      {
+        post.mainImage?.asset && (
+          <img
+            src={post.mainImage.asset.url}
+            alt={post.mainImage.alt ?? post.title}
+            class="post-hero-image"
+            width="900"
+            height="500"
+          />
+        )
+      }
+
+      {
+        post.body && (
+          <div class="post-body" set:html={post.body.map(renderBlock).join("")} />
+        )
+      }
+
+      
+      <MediaSection sections={post.sections} />
+    </article>
+  </main>
+</BaseLayout>
+
+<style>
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .post {
+    padding: 3rem 0 5rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: var(--color-muted);
+    text-decoration: none;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+  }
+
+  .back-link:hover { color: var(--color-primary); }
+
+  h1 {
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+
+  .post-date {
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 2rem;
+  }
+
+  .post-hero-image {
+    width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    margin-bottom: 2.5rem;
+    object-fit: cover;
+  }
+
+  .post-body {
+    font-size: 1.0625rem;
+    line-height: 1.8;
+  }
+
+  .post-body :global(h1),
+  .post-body :global(h2),
+  .post-body :global(h3),
+  .post-body :global(h4) {
+    margin: 2rem 0 0.75rem;
+    line-height: 1.3;
+  }
+
+  .post-body :global(p) { margin-bottom: 1.25rem; }
+</style>

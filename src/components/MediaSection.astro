@@ -1,0 +1,81 @@
+---
+import VideoSection from "./VideoSection.astro";
+import GallerySection from "./GallerySection.astro";
+import AnimationTextSection from "./AnimationTextSection.astro";
+import FullWidthBanner from "./FullWidthBanner.astro";
+
+type VideoSectionType = {
+  _key: string;
+  _type: "videoSection";
+  url: string;
+  caption?: string;
+};
+
+type GallerySectionType = {
+  _key: string;
+  _type: "gallerySection";
+  images?: Array<{
+    _key: string;
+    asset: { url: string };
+    alt?: string;
+    caption?: string;
+  }>;
+};
+
+type AnimationTextSectionType = {
+  _key: string;
+  _type: "animationTextSection";
+  content?: Array<{
+    _type: string;
+    _key: string;
+    style?: string;
+    children?: Array<{ text: string; _type: string; marks?: string[] }>;
+  }>;
+};
+
+type FullWidthTextSectionType = {
+  _key: string;
+  _type: "fullWidthTextSection";
+  backgroundImage?: { asset: { url: string }; hotspot?: { x: number; y: number } };
+  text?: string;
+};
+
+interface Props {
+  sections?: Array<VideoSectionType | GallerySectionType | AnimationTextSectionType | FullWidthTextSectionType>;
+}
+
+const { sections } = Astro.props;
+---
+
+{sections && sections.length > 0 && (
+  <div class="sections">
+    {sections.map((section) => {
+      if (section._type === "videoSection") {
+        return <VideoSection url={section.url} caption={section.caption} />;
+      }
+
+      if (section._type === "gallerySection" && section.images && section.images.length > 0) {
+        return <GallerySection images={section.images} />;
+      }
+
+      if (section._type === "animationTextSection" && section.content && section.content.length > 0) {
+        return <AnimationTextSection content={section.content} />;
+      }
+
+      if (section._type === "fullWidthTextSection" && section.backgroundImage?.asset) {
+        return <FullWidthBanner backgroundImage={section.backgroundImage} text={section.text} />;
+      }
+
+      return null;
+    })}
+  </div>
+)}
+
+<style>
+  .sections {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    margin-top: 3rem;
+  }
+</style>

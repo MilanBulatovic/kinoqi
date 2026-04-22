@@ -1,0 +1,101 @@
+---
+interface Props {
+  backgroundImage: { asset: { url: string }; hotspot?: { x: number; y: number } };
+  text?: string;
+}
+
+const { backgroundImage, text } = Astro.props;
+
+const { x = 0.5, y = 0.5 } = backgroundImage.hotspot ?? {};
+const bgPos = `${x * 100}% ${y * 100}%`;
+---
+
+<div
+  class="section full-width-text-section"
+  style={`background-image: url('${backgroundImage.asset.url}'); background-position: ${bgPos};`}
+>
+  <div class="full-width-overlay" />
+  {text && (
+    <p class="full-width-text fs-48">{text}</p>
+  )}
+</div>
+
+<style>
+  .section { margin: 0; }
+
+  .full-width-text-section {
+    position: relative;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    min-height: 80vh;
+    background-size: cover;
+    background-attachment: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 2rem;
+    box-sizing: border-box;
+  }
+
+  .full-width-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .full-width-text {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+    width: 100%;
+    color: #fff;
+    text-align: center;
+    font-size: clamp(1.5rem, 4vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+
+  .fs-48 {
+    font-size: 68px;
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  document.querySelectorAll<HTMLElement>(".full-width-text").forEach((el) => {
+    const originalText = el.innerText.trim();
+    if (!originalText) return;
+
+    el.innerHTML = originalText
+      .split("")
+      .map((char) =>
+        char === " "
+          ? `<span style="display:inline-block">&nbsp;</span>`
+          : `<span class="char" style="display:inline-block">${char}</span>`
+      )
+      .join("");
+
+    const chars = el.querySelectorAll<HTMLElement>(".char");
+    gsap.set(chars, { opacity: 0, y: 20 });
+
+    ScrollTrigger.create({
+      trigger: el,
+      start: "top 85%",
+      once: true,
+      onEnter: () => {
+        gsap.to(chars, {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: "power2.out",
+          stagger: 0.06,
+        });
+      },
+    });
+  });
+</script>

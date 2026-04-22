@@ -1,0 +1,124 @@
+---
+interface Block {
+  _type: string;
+  _key: string;
+  style?: string;
+  children?: Array<{ text: string; _type: string; marks?: string[] }>;
+}
+
+interface Props {
+  content: Block[];
+}
+
+const { content } = Astro.props;
+
+function renderBlock(block: Block): string {
+  if (block._type !== "block") return "";
+  const text = block.children?.map((c) => c.text).join("") ?? "";
+  const styleMap: Record<string, string> = {
+    normal: "p",
+    h1: "h1",
+    h2: "h2",
+    h3: "h3",
+    h4: "h4",
+    blockquote: "blockquote",
+  };
+  const tag = styleMap[block.style ?? "normal"] ?? "p";
+  return `<${tag}>${text}</${tag}>`;
+}
+---
+
+<div class="section animation-text-section">
+  <div
+    class="animation-text"
+    set:html={content.map(renderBlock).join("")}
+  />
+</div>
+
+<style>
+  .section { margin: 0; }
+
+  .animation-text {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.3;
+  }
+
+  .animation-text :global(h1),
+  .animation-text :global(h2),
+  .animation-text :global(h3),
+  .animation-text :global(h4) {
+    margin: 2rem 0 0.75rem;
+    line-height: 1.3;
+  }
+
+  .animation-text :global(p) {
+    margin-bottom: 1.25rem;
+  }
+
+  .animation-text :global(.word-wrap) {
+    display: inline-block;
+  }
+
+  .animation-text :global(.word) {
+    display: inline-block;
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  function initAnimationText() {
+    document.querySelectorAll<HTMLElement>(".animation-text-section").forEach((section) => {
+      const block = section.querySelector<HTMLElement>(".animation-text");
+      if (!block) return;
+
+      const elements = Array.from(block.querySelectorAll<HTMLElement>("p, h1, h2, h3, h4"));
+      if (!elements.length) return;
+
+      const allWords: HTMLElement[] = [];
+
+      elements.forEach((el) => {
+        const text = el.innerText.trim();
+        if (!text) return;
+
+        el.innerHTML = text
+          .split(/\s+/)
+          .map((word) => `<span class="word-wrap"><span class="word">${word}</span></span>`)
+          .join(" ");
+
+        allWords.push(...Array.from(el.querySelectorAll<HTMLElement>(".word")));
+      });
+
+      if (!allWords.length) return;
+
+      gsap.set(allWords, { opacity: 0 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top 80%",
+          end: "bottom 60%",
+          scrub: 0.3,
+        },
+      });
+
+      tl.to(allWords, {
+        opacity: 1,
+        stagger: 0.2,
+        ease: "none",
+      });
+    });
+
+    ScrollTrigger.refresh();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAnimationText);
+  } else {
+    initAnimationText();
+  }
+</script>

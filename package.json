@@ -1,0 +1,25 @@
+{
+  "name": "kinoqi",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "studio": "sanity dev",
+    "studio:build": "sanity build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@sanity/client": "^6.28.3",
+    "@sanity/image-url": "^1.1.0",
+    "@sanity/vision": "^3.83.0",
+    "astro": "^5.7.3",
+    "gsap": "^3.15.0",
+    "sanity": "^3.83.0",
+    "styled-components": "^6.4.1"
+  }
+}

@@ -1,0 +1,84 @@
+---
+import { sanityClient } from "@/sanity/client";
+import PostCard from "@/components/PostCard.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+const posts = await sanityClient.fetch<
+  Array<{
+    _id: string;
+    title: string;
+    slug: { current: string };
+    excerpt?: string;
+    publishedAt?: string;
+    mainImage?: { asset: { _ref: string }; alt?: string };
+  }>
+>(
+  `*[_type == "post"] | order(publishedAt desc) {
+    _id,
+    title,
+    slug,
+    excerpt,
+    publishedAt,
+    mainImage
+  }`
+);
+---
+
+<BaseLayout title="Blog" currentPath="/blog">
+  <main class="container">
+    <section class="hero">
+      <h1>Blog</h1>
+    </section>
+
+    {
+      posts.length > 0 ? (
+        <section class="posts-grid">
+          {posts.map((post) => (
+            <PostCard
+              title={post.title}
+              slug={post.slug.current}
+              excerpt={post.excerpt}
+              publishedAt={post.publishedAt}
+              mainImage={post.mainImage}
+            />
+          ))}
+        </section>
+      ) : (
+        <section class="empty-state">
+          <p>Još uvek nema objava.</p>
+        </section>
+      )
+    }
+  </main>
+</BaseLayout>
+
+<style>
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .hero {
+    padding: 3rem 0 2rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+  }
+
+  .posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding-bottom: 4rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 0;
+    color: var(--color-muted);
+    font-size: 1.125rem;
+  }
+</style>

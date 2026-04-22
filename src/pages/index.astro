@@ -1,0 +1,112 @@
+---
+import { sanityClient } from "@/sanity/client";
+import PostCard from "@/components/PostCard.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+const posts = await sanityClient.fetch<
+  Array<{
+    _id: string;
+    title: string;
+    slug: { current: string };
+    excerpt?: string;
+    publishedAt?: string;
+    mainImage?: { asset: { _ref: string }; alt?: string };
+  }>
+>(
+  `*[_type == "post"] | order(publishedAt desc) {
+    _id,
+    title,
+    slug,
+    excerpt,
+    publishedAt,
+    mainImage
+  }`
+);
+---
+
+<BaseLayout title="Kinoqi" description="Blog pokretan Astro-om i Sanity CMS-om" currentPath="/">
+  <main class="container">
+    <section class="hero">
+      <h1>Dobrodošli na Kinoqi</h1>
+      <p>Blog pokretan Astro-om i Sanity CMS-om</p>
+    </section>
+
+    {
+      posts.length > 0 ? (
+        <section class="posts-grid">
+          {posts.map((post) => (
+            <PostCard
+              title={post.title}
+              slug={post.slug.current}
+              excerpt={post.excerpt}
+              publishedAt={post.publishedAt}
+              mainImage={post.mainImage}
+            />
+          ))}
+        </section>
+      ) : (
+        <section class="empty-state">
+          <p>Još uvek nema objava.</p>
+          <a href="http://localhost:3333" class="btn">Dodaj prvu objavu u Sanity Studio →</a>
+        </section>
+      )
+    }
+  </main>
+</BaseLayout>
+
+<style>
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .hero {
+    padding: 4rem 0 2rem;
+    text-align: center;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+  }
+
+  .hero p {
+    color: var(--color-muted);
+    font-size: 1.125rem;
+  }
+
+  .posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem 0 4rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 0;
+    color: var(--color-muted);
+  }
+
+  .empty-state p {
+    margin-bottom: 1.5rem;
+    font-size: 1.125rem;
+  }
+
+  .btn {
+    display: inline-block;
+    background: var(--color-primary);
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  .btn:hover {
+    background: #4338ca;
+  }
+</style>
