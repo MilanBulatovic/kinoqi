@@ -290,42 +290,46 @@ const letters = "kinoqi".split("");
   /* ── INTRO OUT (on Enter click) ─────────────────────────── */
   const introBottom = introEl.querySelector<HTMLElement>(".intro__bottom")!;
 
+  // make page visible but transparent so it renders underneath
+  gsap.set(pageWrap, { visibility: "visible", opacity: 0 });
+
   enterBtn.addEventListener("click", () => {
     enterBtn.disabled = true;
 
-    const exitTl = gsap.timeline();
+    const introLottie = introEl.querySelector<HTMLElement>(".intro__lottie")!;
 
-    // 1. Bottom group fades + slides down
-    exitTl.to(introBottom, { opacity: 0, y: 20, duration: 0.35, ease: "power2.in" });
+    const exitTl = gsap.timeline({ defaults: { ease: "sine.inOut" } });
 
-    // 2. Video wrap scales up and iris-wipes out via clip-path
+    // 1a. Enter button disappears instantly
+    gsap.set(enterBtn, { opacity: 0 });
+
+    // 1b. Rocket drifts slowly upward with blur + fade
+    exitTl.to(introLottie, {
+      y: -160,
+      opacity: 0,
+      filter: "blur(14px)",
+      duration: 1.4,
+      ease: "power2.inOut",
+    });
+
+    // 2. Intro video slowly blurs + scales + fades — starts with rocket exit
     exitTl.to(
       introVideoWrap,
-      { scale: 1.15, duration: 0.6, ease: "power2.in" },
+      { scale: 1.06, filter: "blur(8px)", duration: 1.0, ease: "power1.inOut" },
       "<"
     );
 
-    exitTl.to(
-      introEl,
-      {
-        clipPath: "circle(0% at 50% 50%)",
-        duration: 0.7,
-        ease: "power4.inOut",
-      },
-      "-=0.15"
-    );
+    // 3. Cross-dissolve: intro fades out while page fades in simultaneously
+    exitTl.to(introEl,   { opacity: 0, duration: 1.1, ease: "power1.inOut" }, "-=0.6");
+    exitTl.to(pageWrap,  { opacity: 1, duration: 1.1, ease: "power1.inOut" }, "<");
 
-    // 4. Show page
-    exitTl.set(pageWrap, { visibility: "visible" });
-    exitTl.to(pageWrap, { opacity: 1, duration: 0.5, ease: "power2.out" });
-
-    // 5. Remove intro from DOM after it's gone
+    // 4. Clean up intro from DOM
     exitTl.call(() => {
       introEl.remove();
       document.body.classList.remove("intro-active");
     });
 
-    // 6. Animate banner letters in (reuse existing logic)
+    // 5. Banner letters sweep in after page is visible
     exitTl.to(
       bannerLetters,
       {
@@ -333,29 +337,31 @@ const letters = "kinoqi".split("");
         y: 0,
         skewY: 0,
         filter: "blur(0px)",
-        duration: 1.1,
-        stagger: { each: 0.09, ease: "power2.inOut" },
+        duration: 1.3,
+        stagger: { each: 0.1, ease: "power2.inOut" },
         ease: "expo.out",
       },
-      "-=0.3"
+      "-=0.5"
     );
 
+    // 6. Glitch pulse
     exitTl.to(
       bannerLetters,
       {
         x: () => gsap.utils.random(-6, 6),
         color: () => gsap.utils.random(["#a78bfa", "#f0abfc", "#ffffff", "#c4b5fd"]),
-        duration: 0.06,
+        duration: 0.07,
         stagger: { each: 0.04, from: "random" },
         yoyo: true,
         repeat: 3,
-        ease: "expo.out",
+        ease: "none",
       },
-      "+=0.05"
+      "+=0.1"
     );
 
-    exitTl.to(bannerLetters, { x: 0, color: "#ffffff", duration: 0.3, stagger: 0.03, ease: "expo.out" });
+    exitTl.to(bannerLetters, { x: 0, color: "#ffffff", duration: 0.4, stagger: 0.03, ease: "power2.out" });
 
+    // 7. Float loop
     bannerLetters.forEach((el, i) => {
       gsap.to(el, {
         y: gsap.utils.random(-8, 8),
@@ -367,6 +373,6 @@ const letters = "kinoqi".split("");
       });
     });
 
-    exitTl.to(scrollHint, { opacity: 1, duration: 0.8 }, "-=0.4");
+    exitTl.to(scrollHint, { opacity: 1, duration: 1.0, ease: "power1.out" }, "-=0.5");
   });
 </script>
