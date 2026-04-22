@@ -1,10 +1,12 @@
 import { defineField, defineType } from "sanity";
+import { orderRankField } from "@sanity/orderable-document-list";
 
 export const gallery = defineType({
   name: "gallery",
   title: "Galerija",
   type: "document",
   fields: [
+    orderRankField({ type: "gallery" }),
     defineField({
       name: "title",
       title: "Naziv",

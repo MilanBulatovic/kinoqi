@@ -1,6 +1,7 @@
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
 import { visionTool } from "@sanity/vision";
+import { orderableDocumentListDeskItem } from "@sanity/orderable-document-list";
 import { schemaTypes } from "./src/sanity/schemas";
 
 export default defineConfig({
@@ -10,7 +11,44 @@ export default defineConfig({
   projectId: import.meta.env.SANITY_STUDIO_PROJECT_ID,
   dataset: import.meta.env.SANITY_STUDIO_DATASET ?? "production",
 
-  plugins: [structureTool(), visionTool()],
+  plugins: [
+    structureTool({
+      structure: (S, context) =>
+        S.list()
+          .title("Sadržaj")
+          .items([
+            orderableDocumentListDeskItem({
+              type: "post",
+              title: "Postovi",
+              S,
+              context,
+            }),
+            orderableDocumentListDeskItem({
+              type: "gallery",
+              title: "Galerija",
+              S,
+              context,
+            }),
+            orderableDocumentListDeskItem({
+              type: "page",
+              title: "Stranice",
+              S,
+              context,
+            }),
+            orderableDocumentListDeskItem({
+              type: "menu",
+              title: "Meni",
+              S,
+              context,
+            }),
+            S.divider(),
+            ...S.documentTypeListItems().filter(
+              (item) => !["post", "gallery", "page", "menu"].includes(item.getId() ?? "")
+            ),
+          ]),
+    }),
+    visionTool(),
+  ],
 
   schema: {
     types: schemaTypes,

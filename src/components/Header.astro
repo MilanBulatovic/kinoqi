@@ -16,7 +16,7 @@ const menuItems = await sanityClient.fetch<
     openInNewTab: boolean;
   }>
 >(
-  `*[_type == "menu"] | order(order asc) {
+  `*[_type == "menu"] | order(orderRank asc) {
     _id,
     title,
     url,
@@ -26,10 +26,13 @@ const menuItems = await sanityClient.fetch<
 );
 
 function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } } }) {
-  if (item.pageRef?.slug?.current) {
-    return `/stranice/${item.pageRef.slug.current}`;
+  if (item.url) {
+    return item.url;
   }
-  return item.url ?? "#";
+  if (item.pageRef?.slug?.current) {
+    return `/${item.pageRef.slug.current}`;
+  }
+  return "#";
 }
 ---
 

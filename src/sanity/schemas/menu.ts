@@ -1,10 +1,12 @@
 import { defineField, defineType } from "sanity";
+import { orderRankField } from "@sanity/orderable-document-list";
 
 export const menu = defineType({
   name: "menu",
   title: "Menu",
   type: "document",
   fields: [
+    orderRankField({ type: "menu" }),
     defineField({
       name: "title",
       title: "Naziv linka",
@@ -13,9 +15,9 @@ export const menu = defineType({
     }),
     defineField({
       name: "url",
-      title: "Eksterni URL",
+      title: "URL",
       type: "string",
-      description: "Koristi samo za vanjske linkove (npr. https://example.com). Za interne stranice koristi polje ispod.",
+      description: "Interni URL (npr. /blog, /kontakt) ili eksterni (npr. https://example.com). Ako je postavljeno, ima prioritet nad poljem Stranica ispod.",
     }),
     defineField({
       name: "pageRef",
