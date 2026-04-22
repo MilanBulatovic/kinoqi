@@ -26,3 +26,6 @@ pnpm-debug.log*
 
 # Editor settings
 .vscode/
+
+# Markdown — ne ide u repozitorijum
+*.md

@@ -54,10 +54,22 @@ const fullTitle = `${title} – Kinoqi`;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <ViewTransitions />
 
-    <!-- Fonts -->
+    <slot name="head" />
+
+    <!-- Fonts: ne blokiraju prvi paint (FOUC kratko moguće) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Kablammo&display=swap" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Kablammo&display=swap"
+      {...({ media: "print", onload: "this.media='all'" } as Record<string, string>)}
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Kablammo&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <Header currentPath={currentPath} />

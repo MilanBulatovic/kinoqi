@@ -36,25 +36,36 @@ const uid = id ?? `lottie-${Math.random().toString(36).slice(2, 8)}`;
 ></div>
 
 <script>
-  import { DotLottie } from "@lottiefiles/dotlottie-web";
-
-  document.querySelectorAll<HTMLElement>(".lottie-player").forEach((el) => {
+  function mountDotLottie(el: HTMLElement) {
     if (el.dataset.initialized) return;
     el.dataset.initialized = "true";
 
-    new DotLottie({
-      canvas: (() => {
-        const canvas = document.createElement("canvas");
-        canvas.style.width = "100%";
-        canvas.style.height = "100%";
-        el.appendChild(canvas);
-        return canvas;
-      })(),
-      src: el.dataset.src!,
-      loop: el.dataset.loop === "true",
-      autoplay: el.dataset.autoplay === "true",
-      speed: parseFloat(el.dataset.speed ?? "1"),
+    void import("@lottiefiles/dotlottie-web").then(({ DotLottie }) => {
+      new DotLottie({
+        canvas: (() => {
+          const canvas = document.createElement("canvas");
+          canvas.style.width = "100%";
+          canvas.style.height = "100%";
+          el.appendChild(canvas);
+          return canvas;
+        })(),
+        src: el.dataset.src!,
+        loop: el.dataset.loop === "true",
+        autoplay: el.dataset.autoplay === "true",
+        speed: parseFloat(el.dataset.speed ?? "1"),
+      });
     });
+  }
+
+  function whenIdle(cb: () => void) {
+    const ric = (window as Window & { requestIdleCallback?: (fn: () => void, opts?: { timeout: number }) => number })
+      .requestIdleCallback;
+    if (typeof ric === "function") ric(cb, { timeout: 2500 });
+    else setTimeout(cb, 1);
+  }
+
+  document.querySelectorAll<HTMLElement>(".lottie-player").forEach((el) => {
+    whenIdle(() => mountDotLottie(el));
   });
 </script>
 

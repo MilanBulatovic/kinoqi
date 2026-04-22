@@ -3,6 +3,8 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import LottiePlayer from "@/components/LottiePlayer.astro";
 
 const letters = "kinoqi".split("");
+
+const introVideoAttrs = { fetchpriority: "high" } as Record<string, string>;
 ---
 
 <!-- ── Intro overlay ──────────────────────────────────────── -->
@@ -16,6 +18,7 @@ const letters = "kinoqi".split("");
       muted
       loop
       playsinline
+      {...introVideoAttrs}
     ></video>
     <div class="intro__video-overlay"></div>
   </div>
@@ -34,11 +37,12 @@ const letters = "kinoqi".split("");
 <!-- ── Actual page (hidden until intro exits) ────────────── -->
 <div id="page-wrap" style="opacity:0; visibility:hidden;">
   <BaseLayout title="Kinoqi" description="Blog pokretan Astro-om i Sanity CMS-om" currentPath="/">
+    <link slot="head" rel="preload" href="/video1.mp4" as="video" type="video/mp4" {...introVideoAttrs} />
     <section class="banner" aria-label="Kinoqi banner">
       <video
         class="banner__video"
-        src="/video3.mp4"
-        preload="auto"
+        data-src="/video3.mp4"
+        preload="none"
         autoplay
         muted
         loop
@@ -78,6 +82,8 @@ const letters = "kinoqi".split("");
     justify-content: center;
     gap: 3.5rem;
     overflow: hidden;
+    /* Prvi paint odmah (pre prvog frejma videa) — poboljšava FCP */
+    background: #07040f;
   }
 
   .intro__video-wrap {
@@ -419,6 +425,14 @@ const letters = "kinoqi".split("");
 
     enterBtn.addEventListener("click", () => {
       enterBtn.disabled = true;
+      const bannerVideo = pageWrap.querySelector<HTMLVideoElement>(".banner__video");
+      const deferredSrc = bannerVideo?.dataset.src;
+      if (bannerVideo && deferredSrc && !bannerVideo.dataset.hydrated) {
+        bannerVideo.dataset.hydrated = "true";
+        bannerVideo.src = deferredSrc;
+        bannerVideo.preload = "auto";
+        bannerVideo.load();
+      }
       const introLottie = introEl.querySelector<HTMLElement>(".intro__lottie")!;
       const tl = gsap.timeline({ defaults: { ease: "sine.inOut" } });
 
