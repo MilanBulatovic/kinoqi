@@ -58,6 +58,24 @@ const post = await sanityClient.fetch<{
         submitLabel?: string;
         actionUrl?: string;
       }
+    | {
+        _key: string;
+        _type: "scrollScaleSection";
+        heading?: string;
+        panels?: Array<{
+          _key: string;
+          title?: string;
+          content?: Array<{
+            _type: string;
+            _key: string;
+            style?: string;
+            children?: Array<{ text: string; _type: string; marks?: string[] }>;
+          }>;
+          backgroundImage?: { asset: { url: string }; hotspot?: { x: number; y: number } };
+          imageAlt?: string;
+          textPlacement?: "left" | "right";
+        }>;
+      }
   >;
   body?: Array<{
     _type: string;
@@ -85,7 +103,8 @@ const post = await sanityClient.fetch<{
       emailLabel,
       messageLabel,
       submitLabel,
-      actionUrl
+      actionUrl,
+      panels[]{ _key, title, content, imageAlt, textPlacement, backgroundImage{ asset->{ url }, hotspot } }
     },
     body
   }`,

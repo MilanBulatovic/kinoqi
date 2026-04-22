@@ -1,0 +1,309 @@
+---
+/**
+ * Po panelu: sloj 1 = slika full cover; sloj 2 = tekst u užem bloku preko slike (asimetrija).
+ * GSAP: skalira se slika; tekst ulazi sa opacity + translateY (malo kašnjenje u odnosu na skalu).
+ */
+
+interface Block {
+  _type: string;
+  _key: string;
+  style?: string;
+  children?: Array<{ text: string; _type: string; marks?: string[] }>;
+}
+
+export type TextPlacement = "left" | "right";
+
+export interface ScrollScalePanel {
+  _key: string;
+  title?: string;
+  content?: Block[];
+  backgroundImage?: { asset: { url: string }; hotspot?: { x: number; y: number } };
+  imageAlt?: string;
+  textPlacement?: TextPlacement;
+}
+
+interface Props {
+  instanceId: string;
+  heading?: string;
+  panels: ScrollScalePanel[];
+}
+
+const { instanceId, heading, panels } = Astro.props;
+
+function renderBlocks(blocks: Block[] | undefined): string {
+  if (!blocks?.length) return "";
+  return blocks
+    .map((block) => {
+      if (block._type !== "block") return "";
+      const text = block.children?.map((c) => c.text).join("") ?? "";
+      const styleMap: Record<string, string> = {
+        normal: "p",
+        h1: "h1",
+        h2: "h2",
+        h3: "h3",
+        h4: "h4",
+        blockquote: "blockquote",
+      };
+      const tag = styleMap[block.style ?? "normal"] ?? "p";
+      return `<${tag}>${text}</${tag}>`;
+    })
+    .join("");
+}
+---
+
+<section
+  class="scroll-scale-section"
+  aria-label={heading ?? "Sekcija sa skaliranjem"}
+  data-scroll-scale-id={instanceId}
+>
+  <div class="scroll-scale-section__pin">
+    <div class="scroll-scale-section__viewport">
+      {
+        panels.map((panel, index) => {
+          const hotspot = panel.backgroundImage?.hotspot;
+          const bgPos = hotspot
+            ? `${hotspot.x * 100}% ${hotspot.y * 100}%`
+            : "50% 50%";
+          const bgUrl = panel.backgroundImage?.asset?.url;
+          const placement: TextPlacement = panel.textPlacement === "left" ? "left" : "right";
+          const hasCopy = Boolean(panel.title?.trim()) || Boolean(panel.content?.length);
+
+          return (
+            <div class="scroll-scale-panel" data-panel-index={index}>
+              <div class="scroll-scale-panel__inner">
+                <div class="scroll-scale-panel__media">
+                  {bgUrl ? (
+                    <img
+                      class="scroll-scale-panel__img"
+                      src={bgUrl}
+                      alt={panel.imageAlt ?? ""}
+                      loading="lazy"
+                      decoding="async"
+                      style={`object-position: ${bgPos}`}
+                    />
+                  ) : (
+                    <div class="scroll-scale-panel__media-fallback" aria-hidden="true" />
+                  )}
+                  <div class="scroll-scale-panel__overlay" aria-hidden="true" />
+                </div>
+
+                {hasCopy && (
+                  <div
+                    class:list={[
+                      "scroll-scale-panel__textBlock",
+                      placement === "left"
+                        ? "scroll-scale-panel__textBlock--left"
+                        : "scroll-scale-panel__textBlock--right",
+                    ]}
+                  >
+                    {panel.title && <h2 class="scroll-scale-panel__title">{panel.title}</h2>}
+                    {panel.content && panel.content.length > 0 && (
+                      <div class="scroll-scale-panel__body" set:html={renderBlocks(panel.content)} />
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .scroll-scale-section {
+    position: relative;
+    margin: 0;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+  }
+
+  .scroll-scale-section__pin {
+    position: relative;
+    height: min(100vh, 100dvh);
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .scroll-scale-section__viewport {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .scroll-scale-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .scroll-scale-panel__inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* Pun ekran cover — skalira GSAP */
+  .scroll-scale-panel__media {
+    position: absolute;
+    inset: 0;
+    transform: scale(0.82);
+    transform-origin: center center;
+    will-change: transform;
+  }
+
+  .scroll-scale-panel__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .scroll-scale-panel__media-fallback {
+    width: 100%;
+    height: 100%;
+    background: var(--color-bg-elevated, #1a1a1e);
+  }
+
+  .scroll-scale-panel__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      rgba(0, 0, 0, 0.72) 0%,
+      rgba(0, 0, 0, 0.35) 42%,
+      rgba(0, 0, 0, 0.2) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* Asimetričan tekst: ~34–38% širine, ne pola ekrana */
+  .scroll-scale-panel__textBlock {
+    position: absolute;
+    bottom: clamp(1.75rem, 7vh, 5rem);
+    z-index: 2;
+    width: min(38%, 22rem);
+    max-width: calc(100vw - 2.5rem);
+    pointer-events: auto;
+    text-align: left;
+    opacity: 0;
+    transform: translate3d(0, 2.25rem, 0);
+    will-change: transform, opacity;
+  }
+
+  .scroll-scale-panel__textBlock--right {
+    right: clamp(1rem, 4vw, 3.25rem);
+    left: auto;
+  }
+
+  .scroll-scale-panel__textBlock--left {
+    left: clamp(1rem, 4vw, 3.25rem);
+    right: auto;
+  }
+
+  .scroll-scale-panel__title {
+    font-size: clamp(1.65rem, 4vw, 2.65rem);
+    font-weight: 800;
+    line-height: 1.12;
+    margin: 0 0 0.85rem;
+    color: #fff;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
+  }
+
+  .scroll-scale-panel__body :global(p),
+  .scroll-scale-panel__body :global(h1),
+  .scroll-scale-panel__body :global(h2),
+  .scroll-scale-panel__body :global(h3),
+  .scroll-scale-panel__body :global(h4) {
+    color: #fff;
+    margin: 0 0 0.75rem;
+    line-height: 1.45;
+    text-shadow: 0 1px 18px rgba(0, 0, 0, 0.5);
+  }
+
+  .scroll-scale-panel__body :global(p) {
+    font-size: clamp(0.95rem, 2vw, 1.125rem);
+    opacity: 0.94;
+  }
+
+  @media (max-width: 640px) {
+    .scroll-scale-panel__textBlock {
+      width: min(88%, 22rem);
+    }
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const MIN_SCALE = 0.82;
+  const TEXT_DELAY = 0.14;
+  const TEXT_WINDOW = 0.62;
+
+  function smoothstep(t: number): number {
+    const x = Math.max(0, Math.min(1, t));
+    return x * x * (3 - 2 * x);
+  }
+
+  function initScrollScaleSections() {
+    document.querySelectorAll<HTMLElement>("[data-scroll-scale-id]").forEach((section) => {
+      const pin = section.querySelector<HTMLElement>(".scroll-scale-section__pin");
+      const panelEls = Array.from(section.querySelectorAll<HTMLElement>(".scroll-scale-panel"));
+      if (!pin || panelEls.length === 0) return;
+
+      const count = panelEls.length;
+      const segment = 1 / count;
+
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: () => `+=${count * window.innerHeight}`,
+        pin: pin,
+        anticipatePin: 1,
+        scrub: 0.52,
+        onUpdate(self) {
+          const p = self.progress;
+          const front = Math.min(count - 1, Math.floor(p * count));
+
+          panelEls.forEach((panelEl, i) => {
+            gsap.set(panelEl, { zIndex: i === front ? 20 + i : i });
+
+            const media = panelEl.querySelector<HTMLElement>(".scroll-scale-panel__media");
+            const textEl = panelEl.querySelector<HTMLElement>(".scroll-scale-panel__textBlock");
+            if (!media) return;
+
+            const t0 = i * segment;
+            const local = (p - t0) / segment;
+            const u = smoothstep(Math.max(0, Math.min(1, local)));
+            const scale = MIN_SCALE + u * (1 - MIN_SCALE);
+            gsap.set(media, { scale });
+
+            if (textEl) {
+              const raw = (p - t0) / segment;
+              const shifted = (raw - TEXT_DELAY) / TEXT_WINDOW;
+              const te = smoothstep(Math.max(0, Math.min(1, shifted)));
+              gsap.set(textEl, {
+                opacity: te,
+                y: (1 - te) * 36,
+              });
+            }
+          });
+        },
+      });
+    });
+
+    ScrollTrigger.refresh();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initScrollScaleSections);
+  } else {
+    initScrollScaleSections();
+  }
+</script>

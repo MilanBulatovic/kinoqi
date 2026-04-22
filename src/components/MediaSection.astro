@@ -5,6 +5,7 @@ import GallerySection from "./GallerySection.astro";
 import AnimationTextSection from "./AnimationTextSection.astro";
 import FullWidthBanner from "./FullWidthBanner.astro";
 import FormSection from "./FormSection.astro";
+import ScrollScaleSection from "./ScrollScaleSection.astro";
 
 type VideoSectionType = {
   _key: string;
@@ -54,6 +55,27 @@ type FormSectionType = {
   actionUrl?: string;
 };
 
+type ScrollScalePanelType = {
+  _key: string;
+  title?: string;
+  content?: Array<{
+    _type: string;
+    _key: string;
+    style?: string;
+    children?: Array<{ text: string; _type: string; marks?: string[] }>;
+  }>;
+  backgroundImage?: { asset: { url: string }; hotspot?: { x: number; y: number } };
+  imageAlt?: string;
+  textPlacement?: "left" | "right";
+};
+
+type ScrollScaleSectionType = {
+  _key: string;
+  _type: "scrollScaleSection";
+  heading?: string;
+  panels?: ScrollScalePanelType[];
+};
+
 interface Props {
   sections?: Array<
     | VideoSectionType
@@ -61,6 +83,7 @@ interface Props {
     | AnimationTextSectionType
     | FullWidthTextSectionType
     | FormSectionType
+    | ScrollScaleSectionType
   >;
 }
 
@@ -99,6 +122,20 @@ const { sections } = Astro.props;
             messageLabel={section.messageLabel}
             submitLabel={section.submitLabel}
             actionUrl={section.actionUrl}
+          />
+        );
+      }
+
+      if (
+        section._type === "scrollScaleSection" &&
+        section.panels &&
+        section.panels.length >= 2
+      ) {
+        return (
+          <ScrollScaleSection
+            instanceId={section._key}
+            heading={section.heading}
+            panels={section.panels}
           />
         );
       }

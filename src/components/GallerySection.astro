@@ -64,6 +64,27 @@ const rootId = `gallery-${instanceId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
 
+  @media (max-width: 639px) {
+    /* Tačno 2 slike: na mobilnom jedna kolona */
+    .gallery-grid--two {
+      grid-template-columns: 1fr;
+    }
+
+    .gallery-grid--two .gallery-item img {
+      height: 260px;
+    }
+
+    /* 3+ slike: dve kolone */
+    .gallery-grid--many {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .gallery-grid--many .gallery-item img {
+      height: 140px;
+    }
+  }
+
   .gallery-item {
     margin: 0;
     border-radius: 0.5rem;

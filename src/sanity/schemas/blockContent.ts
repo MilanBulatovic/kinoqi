@@ -127,6 +127,82 @@ export const contentSectionsField = defineField({
     },
     {
       type: "object",
+      name: "scrollScaleSection",
+      title: "Scroll scale (pun ekran)",
+      fields: [
+        defineField({
+          name: "heading",
+          title: "Naslov sekcije (pristupačnost)",
+          type: "string",
+        }),
+        defineField({
+          name: "panels",
+          title: "Paneli",
+          type: "array",
+          description: "Npr. dva panela — prvi pa drugi skaliraju na pun ekran tokom skrola",
+          of: [
+            {
+              type: "object",
+              name: "scrollScalePanel",
+              title: "Panel (slika + tekst preko)",
+              fields: [
+                defineField({
+                  name: "backgroundImage",
+                  title: "Slika (full cover)",
+                  type: "image",
+                  options: { hotspot: true },
+                  description: "Cela pozadina panela, object-fit cover",
+                }),
+                defineField({
+                  name: "imageAlt",
+                  title: "Opis slike (alt)",
+                  type: "string",
+                }),
+                defineField({
+                  name: "textPlacement",
+                  title: "Gde je tekst (asimetričan blok, nije 50/50)",
+                  type: "string",
+                  options: {
+                    list: [
+                      { title: "Desno, uži stub (prepor.)", value: "right" },
+                      { title: "Levo, uži stub", value: "left" },
+                    ],
+                    layout: "radio",
+                  },
+                  initialValue: "right",
+                }),
+                defineField({ name: "title", title: "Naslov (preko slike)", type: "string" }),
+                defineField({
+                  name: "content",
+                  title: "Tekst (preko slike)",
+                  type: "array",
+                  of: [{ type: "block" }],
+                }),
+              ],
+              preview: {
+                select: { title: "title" },
+                prepare({ title }: { title?: string }) {
+                  return { title: title?.trim() || "Panel" };
+                },
+              },
+            },
+          ],
+          validation: (rule) => rule.min(2).max(6),
+        }),
+      ],
+      preview: {
+        select: { heading: "heading", panels: "panels" },
+        prepare({ heading, panels }: { heading?: string; panels?: unknown[] }) {
+          const n = Array.isArray(panels) ? panels.length : 0;
+          return {
+            title: `📐 ${heading?.trim() || "Scroll scale"}`,
+            subtitle: `${n} panel${n === 1 ? "" : "a"}`,
+          };
+        },
+      },
+    },
+    {
+      type: "object",
       name: "formSection",
       title: "Forma (kontakt)",
       fields: [

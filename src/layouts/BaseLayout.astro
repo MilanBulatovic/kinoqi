@@ -96,6 +96,12 @@ const fullTitle = `${title} – Kinoqi`;
     padding: 0;
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   body {
     font-family: "Syne", system-ui, sans-serif;
     background: var(--color-bg);
