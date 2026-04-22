@@ -5,10 +5,21 @@ import Footer from "@/components/Footer.astro";
 interface Props {
   title: string;
   description?: string;
+  image?: string;
   currentPath?: string;
+  noindex?: boolean;
 }
 
-const { title, description, currentPath } = Astro.props;
+const {
+  title,
+  description = "Kinoqi - Astro | Sanity",
+  image = "/logo3.png",
+  currentPath,
+  noindex = false,
+} = Astro.props;
+
+const canonicalURL = new URL(currentPath ?? "/", Astro.site ?? Astro.url.origin);
+const fullTitle = `${title} – Kinoqi`;
 ---
 
 <!doctype html>
@@ -16,8 +27,29 @@ const { title, description, currentPath } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title} – Kinoqi</title>
-    {description && <meta name="description" content={description} />}
+
+    <!-- Primary -->
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Open Graph -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content={canonicalURL} />
+    <meta property="og:title"       content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image"       content={image} />
+    <meta property="og:locale"      content="sr_RS" />
+    <meta property="og:site_name"   content="Kinoqi" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image"       content={image} />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
