@@ -39,42 +39,134 @@ function initDistortion(pageWrap: HTMLElement, letters: NodeListOf<HTMLElement>)
   });
 }
 
+const FOOTER_ANIM_MS = 0.72;
+const FOOTER_EASE = "power2.inOut";
+
+function setFooterAnimPageLock(locked: boolean) {
+  const e = document.documentElement;
+  const b = document.body;
+  if (locked) {
+    e.style.setProperty("scroll-behavior", "auto", "important");
+    b.style.setProperty("scroll-behavior", "auto", "important");
+    /* Kraj strane se širi: browser ponekad „koriguje“ skrol = poskok. */
+    e.style.setProperty("overflow-anchor", "none", "important");
+  } else {
+    e.style.removeProperty("scroll-behavior");
+    b.style.removeProperty("scroll-behavior");
+    e.style.removeProperty("overflow-anchor");
+  }
+}
+
 function initFooterToggle(footer: HTMLElement, trigger: HTMLElement) {
   const items = footer.querySelectorAll<HTMLElement>(".footer-anim");
-  gsap.set(items, { opacity: 0, y: 40 });
-  let open = false;
+  gsap.set(items, { opacity: 0, y: 32 });
+  let isOpen = false;
   let busy = false;
+  const D = FOOTER_ANIM_MS;
+  const ease = FOOTER_EASE;
+
+  let scrollRaf: number | null = null;
+  function cancelFooterScrollRaf() {
+    if (scrollRaf == null) return;
+    cancelAnimationFrame(scrollRaf);
+    scrollRaf = null;
+  }
+
+  function applyScrollToDocumentBottom() {
+    const se = document.documentElement;
+    se.scrollTop = Math.round(Math.max(0, se.scrollHeight - window.innerHeight));
+  }
+
+  /** Dno footera u vidno polje; nakon toga ponekad ispravi 1px max-scroll. */
+  function scrollOpenFooterToBottomBatched() {
+    if (scrollRaf != null) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = null;
+      try {
+        footer.scrollIntoView({ block: "end", inline: "nearest", behavior: "auto" });
+      } catch {
+        /* Safari stariji */
+        applyScrollToDocumentBottom();
+        return;
+      }
+      const se = document.documentElement;
+      const t = Math.round(Math.max(0, se.scrollHeight - window.innerHeight));
+      if (Math.abs((window.pageYOffset || 0) - t) > 1) se.scrollTop = t;
+    });
+  }
+
+  function resetFooterToCollapsed() {
+    gsap.set(footer, { height: 0, clearProps: "minHeight" });
+    footer.style.removeProperty("visibility");
+    footer.style.overflow = "hidden";
+  }
+
   trigger.addEventListener("click", () => {
     if (busy) return;
     busy = true;
-    if (!open) {
-      open = true;
+    setFooterAnimPageLock(true);
+    gsap.killTweensOf([footer, window, ...items]);
+
+    if (!isOpen) {
+      isOpen = true;
       trigger.textContent = "✕ zatvori";
-      const tl = gsap.timeline({ onComplete: () => { busy = false; } });
-      tl.to(footer, { height: "auto", duration: 0.7, ease: "expo.out" });
+
+      const h = Math.max(footer.scrollHeight, 1);
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          cancelFooterScrollRaf();
+          /* Klasa is-footer-open + clearProps: nema sukoba sa body.homepage #site-footer { height:0 } */
+          requestAnimationFrame(() => {
+            footer.classList.add("is-footer-open");
+            gsap.set(footer, { clearProps: "height" });
+            try {
+              footer.scrollIntoView({ block: "end", inline: "nearest", behavior: "auto" });
+            } catch {
+              applyScrollToDocumentBottom();
+            }
+            requestAnimationFrame(() => {
+              applyScrollToDocumentBottom();
+              setFooterAnimPageLock(false);
+              busy = false;
+            });
+          });
+        },
+      });
+      const t0 = 0;
+      resetFooterToCollapsed();
+      gsap.set(footer, { overflow: "hidden" });
+      /* Jedan rAF: manje borbu sa layoutom; `scroll-behavior: smooth` na html onemogućen u toku anim. */
+      tl.to(
+        footer,
+        {
+          height: h,
+          duration: D,
+          ease,
+          onUpdate: scrollOpenFooterToBottomBatched,
+        },
+        t0,
+      );
       tl.to(
         items,
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.6,
-          stagger: 0.12,
-          ease: "power3.out",
-          onStart: () => {
-            footer.style.overflow = "";
-          },
-        },
-        "<0.15",
+        { opacity: 1, y: 0, duration: D * 0.72, stagger: 0.04, ease: "power2.out" },
+        t0,
       );
-      tl.to(window, { scrollTo: footer, duration: 0.7, ease: "power2.inOut" }, "<");
     } else {
-      open = false;
+      isOpen = false;
       trigger.textContent = "© 2026 Kinoqi";
-      footer.style.overflow = "hidden";
-      const tl = gsap.timeline({ onComplete: () => { busy = false; } });
-      tl.to(window, { scrollTo: 0, duration: 0.55, ease: "power2.inOut" });
-      tl.to(items, { opacity: 0, y: 30, duration: 0.4, stagger: { each: 0.08, from: "end" }, ease: "power2.in" });
-      tl.to(footer, { height: 0, duration: 0.55, ease: "expo.in" }, ">-0.15");
+
+      /* Fiks u px, pa uklanjanje is-footer-open — u suprotnom kratko vati height:0 iz CSS */
+      const hPx = Math.max(footer.offsetHeight, footer.scrollHeight, 1);
+      gsap.set(footer, { height: hPx, overflow: "hidden" });
+      footer.classList.remove("is-footer-open");
+
+      const tl = gsap.timeline({ onComplete: () => { busy = false; setFooterAnimPageLock(false); } });
+      const t0 = 0;
+      /* Isti takt: scroll, kolaps, fade sadržaja (bez celog scrolla pa tek onda ostatka). */
+      tl.to(window, { scrollTo: { y: 0, autoKill: true }, duration: D, ease }, t0);
+      tl.to(footer, { height: 0, duration: D, ease, onComplete: () => { footer.style.overflow = "hidden"; } }, t0);
+      tl.to(items, { opacity: 0, y: 20, duration: D * 0.55, ease: "power1.in" }, t0);
     }
   });
 }

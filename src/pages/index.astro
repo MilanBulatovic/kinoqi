@@ -349,4 +349,10 @@ const introVideoAttrs = { fetchpriority: "high" } as Record<string, string>;
     overflow: hidden;
     height: 0;
   }
+
+  /* Otključano posle animacije: izbegava sukob inline height:auto sa gornjim pravilom = poskok. */
+  body.homepage #site-footer.is-footer-open {
+    height: auto;
+    overflow: visible;
+  }
 </style>

@@ -3,6 +3,8 @@ interface Props {
   src: string;
   loop?: boolean;
   autoplay?: boolean;
+  /** Kada se reprodukcija pomeri za N sekundi (npr. 1); radi uz autoplay. */
+  playDelaySec?: number;
   speed?: number;
   width?: string;
   height?: string;
@@ -14,6 +16,7 @@ const {
   src,
   loop = true,
   autoplay = true,
+  playDelaySec = 0,
   speed = 1,
   width = "100%",
   height = "100%",
@@ -32,6 +35,7 @@ const uid = id ?? `lottie-${Math.random().toString(36).slice(2, 8)}`;
   data-loop={String(loop)}
   data-autoplay={String(autoplay)}
   data-speed={String(speed)}
+  data-play-delay-sec={String(playDelaySec)}
   aria-hidden="true"
 ></div>
 
@@ -40,8 +44,12 @@ const uid = id ?? `lottie-${Math.random().toString(36).slice(2, 8)}`;
     if (el.dataset.initialized) return;
     el.dataset.initialized = "true";
 
-    void import("@lottiefiles/dotlottie-web").then(({ DotLottie }) => {
-      new DotLottie({
+    void import("@lottiefiles/dotlottie-web").then((mod) => {
+      const delaySec = Math.max(0, parseFloat(el.dataset.playDelaySec ?? "0"));
+      const wantAutoplay = el.dataset.autoplay === "true";
+      const useDelayedStart = wantAutoplay && delaySec > 0;
+
+      const instance = new mod.DotLottie({
         canvas: (() => {
           const canvas = document.createElement("canvas");
           canvas.style.width = "100%";
@@ -51,9 +59,14 @@ const uid = id ?? `lottie-${Math.random().toString(36).slice(2, 8)}`;
         })(),
         src: el.dataset.src!,
         loop: el.dataset.loop === "true",
-        autoplay: el.dataset.autoplay === "true",
+        autoplay: useDelayedStart ? false : wantAutoplay,
         speed: parseFloat(el.dataset.speed ?? "1"),
       });
+      if (useDelayedStart) {
+        window.setTimeout(() => {
+          instance.play();
+        }, Math.round(delaySec * 1000));
+      }
     });
   }
 
