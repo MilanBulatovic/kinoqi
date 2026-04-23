@@ -316,9 +316,5 @@ function renderBlocks(blocks: Block[] | undefined): string {
     ScrollTrigger.refresh();
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initScrollScaleSections);
-  } else {
-    initScrollScaleSections();
-  }
+  document.addEventListener("astro:page-load", initScrollScaleSections);
 </script>

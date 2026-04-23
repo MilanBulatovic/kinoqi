@@ -67,35 +67,41 @@ const bgPos = `${x * 100}% ${y * 100}%`;
 
   gsap.registerPlugin(ScrollTrigger);
 
-  document.querySelectorAll<HTMLElement>(".full-width-text").forEach((el) => {
-    const originalText = el.innerText.trim();
-    if (!originalText) return;
+  function initFullWidthBannerScroll() {
+    document.querySelectorAll<HTMLElement>(".full-width-text").forEach((el) => {
+      const originalText = el.innerText.trim();
+      if (!originalText) return;
 
-    el.innerHTML = originalText
-      .split("")
-      .map((char) =>
-        char === " "
-          ? `<span style="display:inline-block">&nbsp;</span>`
-          : `<span class="char" style="display:inline-block">${char}</span>`
-      )
-      .join("");
+      el.innerHTML = originalText
+        .split("")
+        .map((char) =>
+          char === " "
+            ? `<span style="display:inline-block">&nbsp;</span>`
+            : `<span class="char" style="display:inline-block">${char}</span>`
+        )
+        .join("");
 
-    const chars = el.querySelectorAll<HTMLElement>(".char");
-    gsap.set(chars, { opacity: 0, y: 20 });
+      const chars = el.querySelectorAll<HTMLElement>(".char");
+      gsap.set(chars, { opacity: 0, y: 20 });
 
-    ScrollTrigger.create({
-      trigger: el,
-      start: "top 85%",
-      once: true,
-      onEnter: () => {
-        gsap.to(chars, {
-          opacity: 1,
-          y: 0,
-          duration: 0.6,
-          ease: "power2.out",
-          stagger: 0.06,
-        });
-      },
+      ScrollTrigger.create({
+        trigger: el,
+        start: "top 85%",
+        once: true,
+        onEnter: () => {
+          gsap.to(chars, {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            ease: "power2.out",
+            stagger: 0.06,
+          });
+        },
+      });
     });
-  });
+
+    ScrollTrigger.refresh();
+  }
+
+  document.addEventListener("astro:page-load", initFullWidthBannerScroll);
 </script>

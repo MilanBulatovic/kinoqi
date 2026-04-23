@@ -116,9 +116,5 @@ function renderBlock(block: Block): string {
     ScrollTrigger.refresh();
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initAnimationText);
-  } else {
-    initAnimationText();
-  }
+  document.addEventListener("astro:page-load", initAnimationText);
 </script>
