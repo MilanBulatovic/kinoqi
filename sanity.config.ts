@@ -35,15 +35,18 @@ export default defineConfig({
               S,
               context,
             }),
-            orderableDocumentListDeskItem({
-              type: "menu",
-              title: "Meni",
-              S,
-              context,
-            }),
+            S.listItem()
+              .id("link-main-menu")
+              .title("Meni (navigacija)")
+              .child(
+                S.document()
+                  .schemaType("mainMenu")
+                  .documentId("main-menu")
+                  .title("Navigacioni meni"),
+              ),
             S.divider(),
             ...S.documentTypeListItems().filter(
-              (item) => !["post", "gallery", "page", "menu"].includes(item.getId() ?? "")
+              (item) => !["post", "gallery", "page", "mainMenu"].includes(item.getId() ?? "")
             ),
           ]),
     }),

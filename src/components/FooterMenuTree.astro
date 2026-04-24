@@ -1,0 +1,29 @@
+---
+import type { MainMenuItem } from "@/sanity/menuTypes";
+import { resolveMenuItemUrl } from "@/sanity/resolveMenuUrl";
+import Self from "./FooterMenuTree.astro";
+
+interface Props {
+  items: MainMenuItem[];
+  depth?: number;
+}
+
+const { items, depth = 0 } = Astro.props;
+---
+
+{
+  items.length > 0 && (
+    <ul class:list={["footer-menu-list", depth > 0 && "footer-menu-list--nested"]}>
+      {items.map((item) => {
+        const href = resolveMenuItemUrl(item, "footer");
+        const sub = item.children?.filter(Boolean) ?? [];
+        return (
+          <li>
+            <a href={href}>{item.title}</a>
+            {sub.length > 0 && <Self items={sub} depth={depth + 1} />}
+          </li>
+        );
+      })}
+    </ul>
+  )
+}

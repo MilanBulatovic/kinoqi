@@ -1,29 +1,14 @@
 ---
 import { sanityClient } from "@/sanity/client";
 import LottiePlayer from "@/components/LottiePlayer.astro";
+import FooterMenuTree from "@/components/FooterMenuTree.astro";
+import { MAIN_MENU_ID, mainMenuGROQ } from "@/sanity/navigationQuery";
+import type { MainMenuItem } from "@/sanity/menuTypes";
 
-const menuItems = await sanityClient.fetch<
-  Array<{
-    _id: string;
-    title: string;
-    url?: string;
-    pageRef?: { slug: { current: string } };
-  }>
->(
-  `*[_type == "menu"] | order(order asc) {
-    _id,
-    title,
-    url,
-    pageRef->{ slug }
-  }`
-);
-
-function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } } }) {
-  if (item.pageRef?.slug?.current) {
-    return `/stranice/${item.pageRef.slug.current}`;
-  }
-  return item.url ?? "#";
-}
+const menuDoc = await sanityClient.fetch<{ items: MainMenuItem[] } | null>(mainMenuGROQ, {
+  menuId: MAIN_MENU_ID,
+});
+const menuItems = menuDoc?.items ?? [];
 ---
 
 <footer id="site-footer" class="site-footer">
@@ -38,13 +23,7 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
         menuItems.length > 0 && (
           <nav class="footer-nav footer-anim">
             <h3>Navigacija</h3>
-            <ul>
-              {menuItems.map((item) => (
-                <li>
-                  <a href={resolveUrl(item)}>{item.title}</a>
-                </li>
-              ))}
-            </ul>
+            <FooterMenuTree items={menuItems} />
           </nav>
         )
       }
@@ -135,8 +114,10 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
     margin-bottom: 0.75rem;
   }
 
-  .footer-nav ul {
+  /* FooterMenuTree = drugi Astro scope — stil kroz :global, u suprotnom vidi se disk liste. */
+  .footer-nav :global(ul.footer-menu-list) {
     list-style: none;
+    list-style-type: none;
     padding: 0;
     margin: 0;
     display: flex;
@@ -144,14 +125,34 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
     gap: 0.5rem;
   }
 
-  .footer-nav a {
+  .footer-nav :global(ul.footer-menu-list li) {
+    list-style: none;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .footer-nav :global(ul.footer-menu-list--nested) {
+    margin-top: 0.4rem;
+    margin-left: 0.75rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 0.4rem;
+  }
+
+  .footer-nav :global(a) {
     color: #9ca3af;
     text-decoration: none;
     font-size: 0.9rem;
-    transition: color 0.15s;
+    line-height: 1.5;
+    font-weight: 500;
+    font-family: inherit;
+    display: inline-block;
+    letter-spacing: 0.01em;
+    transition: color 0.15s, opacity 0.15s;
   }
 
-  .footer-nav a:hover {
+  .footer-nav :global(a:hover) {
     color: #fff;
   }
 

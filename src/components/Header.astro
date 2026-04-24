@@ -1,5 +1,9 @@
 ---
 import { sanityClient } from "@/sanity/client";
+import HeaderSubNav from "@/components/HeaderSubNav.astro";
+import { MAIN_MENU_ID, mainMenuGROQ } from "@/sanity/navigationQuery";
+import type { MainMenuItem } from "@/sanity/menuTypes";
+import { resolveMenuItemUrl } from "@/sanity/resolveMenuUrl";
 
 interface Props {
   currentPath?: string;
@@ -8,33 +12,10 @@ interface Props {
 const { currentPath = "/" } = Astro.props;
 const isHome = currentPath === "/";
 
-const menuItems = await sanityClient.fetch<
-  Array<{
-    _id: string;
-    title: string;
-    url?: string;
-    pageRef?: { slug: { current: string } };
-    openInNewTab: boolean;
-  }>
->(
-  `*[_type == "menu"] | order(orderRank asc) {
-    _id,
-    title,
-    url,
-    pageRef->{ slug },
-    openInNewTab
-  }`
-);
-
-function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } } }) {
-  if (item.url) {
-    return item.url;
-  }
-  if (item.pageRef?.slug?.current) {
-    return `/${item.pageRef.slug.current}`;
-  }
-  return "#";
-}
+const menuDoc = await sanityClient.fetch<{ items: MainMenuItem[] } | null>(mainMenuGROQ, {
+  menuId: MAIN_MENU_ID,
+});
+const menuItems = menuDoc?.items ?? [];
 ---
 
 <header class:list={["site-header", { "site-header--solid": !isHome }]} data-header-root>
@@ -62,17 +43,57 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
           <nav id="main-nav" class="main-nav">
             <span class="nav-pill" id="nav-pill" aria-hidden="true"></span>
             {menuItems.map((item) => {
-              const href = resolveUrl(item);
+              const href = resolveMenuItemUrl(item, "header");
+              const sub = item.children?.filter(Boolean) ?? [];
+              if (sub.length > 0) {
+                return (
+                  <div class="nav-item nav-item--has-children">
+                    <a
+                      href={href}
+                      class:list={["nav-link", "nav-link--parent", { active: currentPath === href }]}
+                      data-pill-link
+                      aria-haspopup="true"
+                      target={item.openInNewTab ? "_blank" : undefined}
+                      rel={item.openInNewTab ? "noopener noreferrer" : undefined}
+                      data-astro-reload={href === "/" ? true : undefined}
+                    >
+                      <span class="nav-link__label">{item.title}</span>
+                      <span class="nav-link__caret" aria-hidden="true">
+                        <svg
+                          class="nav-link__caret-icon"
+                          width="10"
+                          height="6"
+                          viewBox="0 0 10 6"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M1 1.5L5 4.5L9 1.5"
+                            stroke="currentColor"
+                            stroke-width="1.4"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    </a>
+                    <HeaderSubNav items={sub} depth={1} />
+                  </div>
+                );
+              }
               return (
-                <a
-                  href={href}
-                  class:list={["nav-link", { active: currentPath === href }]}
-                  target={item.openInNewTab ? "_blank" : undefined}
-                  rel={item.openInNewTab ? "noopener noreferrer" : undefined}
-                  data-astro-reload={href === "/" ? true : undefined}
-                >
-                  {item.title}
-                </a>
+                <div class="nav-item">
+                  <a
+                    href={href}
+                    class:list={["nav-link", { active: currentPath === href }]}
+                    data-pill-link
+                    target={item.openInNewTab ? "_blank" : undefined}
+                    rel={item.openInNewTab ? "noopener noreferrer" : undefined}
+                    data-astro-reload={href === "/" ? true : undefined}
+                  >
+                    {item.title}
+                  </a>
+                </div>
               );
             })}
           </nav>
@@ -126,6 +147,125 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
     position: relative;
   }
 
+  .nav-item {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* Child komponenta (HeaderSubNav) = drugačiji Astro scope — :global na njene klase. */
+  #main-nav :global(.nav-sub) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  #main-nav :global(.nav-sub__row) {
+    position: relative;
+  }
+
+  @media (min-width: 768px) {
+    /* Prazan prostor ispod "roditelja" = hover ostaje aktivan do padajućeg dela. */
+    .nav-item--has-children::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      height: 0.4rem;
+      z-index: 199;
+    }
+
+    /* Isti stil „prstena” kao .nav-pill::before (gradijent) + mali staklasti fill */
+    .nav-item--has-children > :global(ul.nav-sub),
+    :global(.nav-sub__row) > :global(ul.nav-sub) {
+      border: none;
+      border-radius: 10px;
+      padding: 0.4rem 0;
+      background: rgba(5, 20, 36, 0.88);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+      isolation: isolate;
+    }
+
+    .nav-item--has-children > :global(ul.nav-sub)::before,
+    :global(.nav-sub__row) > :global(ul.nav-sub)::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 10px;
+      padding: 1px;
+      background: var(--logo-gradient);
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .nav-item--has-children > :global(ul.nav-sub) {
+      display: none;
+      position: absolute;
+      top: calc(100% + 0.35rem);
+      left: 0;
+      min-width: 10.5rem;
+      z-index: 200;
+    }
+
+    .nav-item--has-children:hover > :global(ul.nav-sub),
+    .nav-item--has-children:focus-within > :global(ul.nav-sub) {
+      display: block;
+    }
+
+    :global(.nav-sub__row) > :global(ul.nav-sub) {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: calc(100% + 0.2rem);
+      min-width: 9.5rem;
+      z-index: 201;
+    }
+
+    :global(.nav-sub__row):hover > :global(ul.nav-sub),
+    :global(.nav-sub__row):focus-within > :global(ul.nav-sub) {
+      display: block;
+    }
+
+    #main-nav :global(a.nav-link--sub),
+    #main-nav :global(a.nav-link--sub:visited) {
+      position: relative;
+      z-index: 1;
+      display: block;
+      width: 100%;
+      text-align: left;
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    #main-nav :global(a.nav-link--sub:hover),
+    #main-nav :global(a.nav-link--sub:focus-visible) {
+      color: #fff;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    #main-nav :global(a.nav-link--deeper) {
+      text-decoration: none;
+      font-size: 0.82rem;
+    }
+  }
+
   .nav-pill {
     position: absolute;
     top: 50%;
@@ -169,6 +309,34 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
   .nav-link:hover,
   .nav-link.active {
     color: #fff;
+  }
+
+  .nav-link--parent {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+  }
+
+  .nav-link__label {
+    min-width: 0;
+  }
+
+  .nav-link__caret {
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-top: 0.08em;
+    color: currentColor;
+    opacity: 0.78;
+    transition: transform 0.22s ease, opacity 0.15s ease;
+  }
+
+  @media (min-width: 768px) {
+    .nav-item--has-children:hover .nav-link__caret,
+    .nav-item--has-children:focus-within .nav-link__caret {
+      transform: rotate(180deg);
+      opacity: 1;
+    }
   }
 
   /* ── Mobile trigger ─────────────────────────────────────── */
@@ -252,12 +420,49 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
       display: none;
     }
 
+    .nav-item {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .nav-item--has-children :global(ul.nav-sub),
+    :global(.nav-sub__row) :global(ul.nav-sub) {
+      display: block;
+      position: static;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      min-width: 0;
+      margin-top: 0.2rem;
+      margin-left: 0.4rem;
+      padding: 0 0 0.2rem 0.55rem;
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      background: transparent;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
     .nav-link {
       font-size: 1.35rem;
       padding: 0.85rem 1rem;
       text-align: center;
       border-radius: 12px;
       background: transparent;
+    }
+
+    #main-nav :global(a.nav-link--sub),
+    #main-nav :global(a.nav-link--deeper) {
+      text-align: left;
+      text-decoration: none;
+      font-size: 1.1rem;
+      font-weight: 500;
+      padding: 0.5rem 0.75rem 0.5rem 1.1rem;
+    }
+
+    #main-nav :global(a.nav-link--deeper) {
+      font-size: 1rem;
+      padding-left: 1.5rem;
     }
   }
 </style>
@@ -273,7 +478,7 @@ function resolveUrl(item: { url?: string; pageRef?: { slug: { current: string } 
     const pill = document.getElementById("nav-pill");
     if (!nav || !pill || !window.matchMedia(MQ).matches) return;
 
-    const links = Array.from(nav.querySelectorAll<HTMLElement>(".nav-link"));
+    const links = Array.from(nav.querySelectorAll<HTMLElement>("[data-pill-link]"));
     const active = nav.querySelector<HTMLElement>(".nav-link.active");
     let clicking = false;
 

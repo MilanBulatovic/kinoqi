@@ -1,0 +1,39 @@
+---
+import type { MainMenuItem } from "@/sanity/menuTypes";
+import { resolveMenuItemUrl } from "@/sanity/resolveMenuUrl";
+import Self from "./HeaderSubNav.astro";
+
+interface Props {
+  items: MainMenuItem[];
+  depth: number;
+}
+
+const { items, depth } = Astro.props;
+---
+
+<ul
+  class:list={["nav-sub", depth > 1 && "nav-sub--deep"]}
+  role="list"
+  aria-label={depth === 1 ? "Podstavke menija" : undefined}
+>
+  {
+    items.map((item) => {
+      const href = resolveMenuItemUrl(item, "header");
+      const sub = item.children?.filter(Boolean) ?? [];
+      return (
+        <li class="nav-sub__row">
+          <a
+            href={href}
+            class:list={["nav-link", "nav-link--sub", depth > 1 && "nav-link--deeper"]}
+            target={item.openInNewTab ? "_blank" : undefined}
+            rel={item.openInNewTab ? "noopener noreferrer" : undefined}
+            data-astro-reload={href === "/" ? true : undefined}
+          >
+            {item.title}
+          </a>
+          {sub.length > 0 && <Self items={sub} depth={depth + 1} />}
+        </li>
+      );
+    })
+  }
+</ul>
