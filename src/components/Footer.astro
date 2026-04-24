@@ -5,6 +5,13 @@ import FooterMenuTree from "@/components/FooterMenuTree.astro";
 import { MAIN_MENU_ID, mainMenuGROQ } from "@/sanity/navigationQuery";
 import type { MainMenuItem } from "@/sanity/menuTypes";
 
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = "/" } = Astro.props;
+const showLottie = currentPath === "/";
+
 const menuDoc = await sanityClient.fetch<{ items: MainMenuItem[] } | null>(mainMenuGROQ, {
   menuId: MAIN_MENU_ID,
 });
@@ -34,16 +41,20 @@ const menuItems = menuDoc?.items ?? [];
     </div>
   </div>
 
-  <div class="footer-lottie-deco" aria-hidden="true">
-    <LottiePlayer
-      src="/Rocket Lunch.lottie"
-      width="7.5rem"
-      height="7.5rem"
-      loop={true}
-      autoplay={true}
-      class="footer-lottie-deco__player"
-    />
-  </div>
+  {
+    showLottie && (
+      <div class="footer-lottie-deco" aria-hidden="true">
+        <LottiePlayer
+          src="/Rocket Lunch.lottie"
+          width="7.5rem"
+          height="7.5rem"
+          loop={true}
+          autoplay={true}
+          class="footer-lottie-deco__player"
+        />
+      </div>
+    )
+  }
 </footer>
 
 <style>
