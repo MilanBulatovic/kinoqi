@@ -1,7 +1,7 @@
 ---
-interface Props {
+export interface PostCardPost {
   title: string;
-  slug: string;
+  slug: { current: string };
   excerpt?: string;
   publishedAt?: string;
   mainImage?: {
@@ -10,7 +10,12 @@ interface Props {
   };
 }
 
-const { title, slug, excerpt, publishedAt, mainImage } = Astro.props;
+interface Props {
+  post: PostCardPost;
+}
+
+const { title, slug, excerpt, publishedAt, mainImage } = Astro.props.post;
+const slugPath = slug.current;
 
 const formattedDate = publishedAt
   ? new Date(publishedAt).toLocaleDateString("sr-RS", {
@@ -29,7 +34,7 @@ function imageUrl(ref: string) {
 <article class="post-card">
   {
     mainImage?.asset && (
-      <a href={`/blog/${slug}`} class="post-card__image-link">
+      <a href={`/blog/${slugPath}`} class="post-card__image-link">
         <img
           src={imageUrl(mainImage.asset._ref)}
           alt={mainImage.alt ?? title}
@@ -43,10 +48,10 @@ function imageUrl(ref: string) {
   <div class="post-card__content">
     {formattedDate && <time class="post-card__date">{formattedDate}</time>}
     <h2 class="post-card__title">
-      <a href={`/blog/${slug}`}>{title}</a>
+      <a href={`/blog/${slugPath}`}>{title}</a>
     </h2>
     {excerpt && <p class="post-card__excerpt">{excerpt}</p>}
-    <a href={`/blog/${slug}`} class="post-card__link">Čitaj više →</a>
+    <a href={`/blog/${slugPath}`} class="post-card__link">Čitaj više →</a>
   </div>
 </article>
 

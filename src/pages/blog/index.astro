@@ -34,13 +34,7 @@ const posts = await sanityClient.fetch<
       posts.length > 0 ? (
         <section class="posts-grid">
           {posts.map((post) => (
-            <PostCard
-              title={post.title}
-              slug={post.slug.current}
-              excerpt={post.excerpt}
-              publishedAt={post.publishedAt}
-              mainImage={post.mainImage}
-            />
+            <PostCard post={post} />
           ))}
         </section>
       ) : (
